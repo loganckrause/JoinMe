@@ -1,0 +1,93 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# C extensions
+*.pyd
+
+# A current directory pyproject.toml not under version control
+# .mypy_cache/
+# .pytest_cache/
+
+# Distributions and packaging
+.Python
+build/
+dist/
+sdist/
+wheels/
+*.egg-info/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-arg.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Specific to pycharm project files
+.idea/
+
+# Specific to VSCode project files
+.vscode/
+
+# Virtual environment
+# venv/
+# .venv/
+# env/
+# .env/
+
+# Environments created by virtualenv
+venv/
+.venv/
+env/
+.env/
+
+# Pipenv
+# Pipfile.lock (should be committed)
+
+# Other python interpreters
+# jupyter notebook
+
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+web-build/
+
+# Metro
+metro-cache/
+
+# iOS and Android
+ios/
+android/
+
+# Other
+*.jks
+*.p8
+*.keystore
+*.mobileprovision
+*.orig

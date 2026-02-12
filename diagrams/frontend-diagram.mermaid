@@ -1,0 +1,488 @@
+---
+title: Event Matching Frontend Architecture Diagram
+---
+classDiagram
+    namespace components {
+        class App {
+            <<React>>
+            state: user: User
+            state: events: Event[]
+            state: currentView: string
+            state: notifications: Notification[]
+            
+            render(): JSX.Element
+            handleLogin(): void
+            handleLogout(): void
+            handleSwipe(eventId: int, isInterested: bool): void
+            handleCreateEvent(eventData: EventData): void
+            handleSendMessage(eventId: int, message: string): void
+        }
+        
+        class EventCard {
+            <<Component>>
+            props: event: Event
+            props: onSwipe: (eventId: int, isInterested: bool) => void
+            
+            render(): JSX.Element
+            handleSwipe(isInterested: bool): void
+        }
+        
+        class Profile {
+            <<Component>>
+            state: user: User
+            state: ratings: UserRating[]
+            
+            render(): JSX.Element
+            handleUpdateProfile(profileData: ProfileData): void
+            handleDeleteAccount(): void
+        }
+        
+        class EventList {
+            <<Component>>
+            state: events: Event[]
+            state: loading: bool
+            
+            render(): JSX.Element
+            handleLoadEvents(): void
+            handleFilterByCategory(categoryId: int): void
+            handleSearch(query: string): void
+        }
+        
+        class Chat {
+            <<Component>>
+            state: messages: Message[]
+            state: currentEvent: Event
+            
+            render(): JSX.Element
+            handleSendMessage(message: string): void
+            handleLoadMessages(): void
+        }
+        
+        class EventForm {
+            <<Component>>
+            state: formData: EventData
+            state: loading: bool
+            
+            render(): JSX.Element
+            handleSubmit(): void
+            handleInputChange(field: string, value: any): void
+        }
+        
+        class Login {
+            <<Component>>
+            state: credentials: LoginData
+            state: error: string
+            
+            render(): JSX.Element
+            handleSubmit(): void
+            handleInputChange(field: string, value: any): void
+        }
+        
+        class Register {
+            <<Component>>
+            state: userData: RegisterData
+            state: error: string
+            
+            render(): JSX.Element
+            handleSubmit(): void
+            handleInputChange(field: string, value: any): void
+        }
+        
+        class Navigation {
+            <<Component>>
+            state: currentUser: User
+            
+            render(): JSX.Element
+            handleNavigate(view: string): void
+        }
+        
+        class Notifications {
+            <<Component>>
+            state: notifications: Notification[]
+            
+            render(): JSX.Element
+            handleMarkAsRead(notificationId: int): void
+            handleClearNotifications(): void
+        }
+        
+        class Rating {
+            <<Component>>
+            state: rating: int
+            
+            render(): JSX.Element
+            handleRate(score: int): void
+        }
+        
+        class Map {
+            <<Component>>
+            state: events: Event[]
+            state: center: Coordinates
+            
+            render(): JSX.Element
+            handleSetMarker(event: Event): void
+            handleCenterMap(coordinates: Coordinates): void
+        }
+    }
+    
+    namespace services {
+        class AuthService {
+            <<Service>>
+            login(email: string, password: string): Promise<User>
+            register(userData: RegisterData): Promise<User>
+            logout(): Promise<void>
+            getCurrentUser(): Promise<User>
+            refreshToken(): Promise<string>
+        }
+        
+        class EventService {
+            <<Service>>
+            getEvents(): Promise<Event[]>
+            getEvent(eventId: int): Promise<Event>
+            createEvent(eventData: EventData): Promise<Event>
+            updateEvent(eventId: int, eventData: EventData): Promise<Event>
+            deleteEvent(eventId: int): Promise<void>
+            getEventsByCategory(categoryId: int): Promise<Event[]>
+            searchEvents(query: string): Promise<Event[]>
+        }
+        
+        class SwipeService {
+            <<Service>>
+            swipe(eventId: int, isInterested: bool): Promise<Swipe>
+            getUserSwipes(): Promise<Swipe[]>
+            getEventSwipes(eventId: int): Promise<Swipe[]>
+            getMatches(): Promise<Event[]>
+        }
+        
+        class ChatService {
+            <<Service>>
+            getMessages(eventId: int): Promise<Message[]>
+            sendMessage(eventId: int, message: string): Promise<Message>
+            subscribeToMessages(eventId: int, callback: (messages: Message[]) => void): void
+        }
+        
+        class RatingService {
+            <<Service>>
+            rateUser(rateeId: int, score: int, comment: string): Promise<UserRating>
+            rateEvent(eventId: int, score: int, review: string): Promise<EventRating>
+            getUserRatings(userId: int): Promise<UserRating[]>
+            getEventRatings(eventId: int): Promise<EventRating[]>
+        }
+        
+        class NotificationService {
+            <<Service>>
+            getNotifications(): Promise<Notification[]>
+            markAsRead(notificationId: int): Promise<void>
+            clearNotifications(): Promise<void>
+            subscribeToNotifications(callback: (notifications: Notification[]) => void): void
+        }
+        
+        class UserService {
+            <<Service>>
+            updateProfile(profileData: ProfileData): Promise<User>
+            getProfile(userId: int): Promise<User>
+            deleteAccount(): Promise<void>
+        }
+        
+        class LocationService {
+            <<Service>>
+            getCurrentLocation(): Promise<Coordinates>
+            getDistance(coordinates1: Coordinates, coordinates2: Coordinates): Promise<number>
+            searchNearbyEvents(coordinates: Coordinates, radius: number): Promise<Event[]>
+        }
+    }
+    
+    namespace hooks {
+        class useAuth {
+            <<Hook>>
+            user: User
+            login: (email: string, password: string) => Promise<void>
+            register: (userData: RegisterData) => Promise<void>
+            logout: () => Promise<void>
+            isAuthenticated: boolean
+        }
+        
+        class useEvents {
+            <<Hook>>
+            events: Event[]
+            loading: boolean
+            error: string
+            
+            loadEvents(): void
+            filterByCategory(categoryId: int): void
+            search(query: string): void
+        }
+        
+        class useSwipes {
+            <<Hook>>
+            swipes: Swipe[]
+            matches: Event[]
+            
+            swipe(eventId: int, isInterested: bool): void
+            getMatches(): void
+        }
+        
+        class useChat {
+            <<Hook>>
+            messages: Message[]
+            loading: boolean
+            
+            loadMessages(eventId: int): void
+            sendMessage(eventId: int, message: string): void
+            subscribeToMessages(eventId: int, callback: (messages: Message[]) => void): void
+        }
+        
+        class useNotifications {
+            <<Hook>>
+            notifications: Notification[]
+            
+            markAsRead(notificationId: int): void
+            clearNotifications(): void
+            subscribeToNotifications(callback: (notifications: Notification[]) => void): void
+        }
+        
+        class useLocation {
+            <<Hook>>
+            coordinates: Coordinates
+            
+            getCurrentLocation(): void
+            searchNearbyEvents(radius: number): void
+        }
+    }
+    
+    namespace utils {
+        class API {
+            <<Utility>>
+            baseURL: string
+            
+            get(endpoint: string, params?: object): Promise<any>
+            post(endpoint: string, data?: object): Promise<any>
+            put(endpoint: string, data?: object): Promise<any>
+            delete(endpoint: string): Promise<any>
+        }
+        
+        class Storage {
+            <<Utility>>
+            
+            setItem(key: string, value: any): void
+            getItem(key: string): any
+            removeItem(key: string): void
+            clear(): void
+        }
+        
+        class Validator {
+            <<Utility>>
+            
+            validateEmail(email: string): boolean
+            validatePassword(password: string): boolean
+            validateEvent(eventData: EventData): boolean
+            validateProfile(profileData: ProfileData): boolean
+        }
+        
+        class Formatter {
+            <<Utility>>
+            
+            formatDate(date: Date): string
+            formatTime(time: Date): string
+            formatDistance(distance: number): string
+            formatRating(rating: number): string
+        }
+    }
+    
+    namespace types {
+        class User {
+            id: int
+            name: string
+            email: string
+            bio: string
+            age: int
+            profile_pic: string
+            created_at: string
+        }
+        
+        class Event {
+            id: int
+            creator_id: int
+            category_id: int
+            title: string
+            description: string
+            event_date: string
+            location_name: string
+            lat: number
+            long: number
+            event_pic: string
+            created_at: string
+        }
+        
+        class Swipe {
+            id: int
+            user_id: int
+            event_id: int
+            is_interested: boolean
+            created_at: string
+        }
+        
+        class UserRating {
+            id: int
+            rater_id: int
+            ratee_id: int
+            score: int
+            comment: string
+            created_at: string
+        }
+        
+        class EventRating {
+            id: int
+            user_id: int
+            event_id: int
+            score: int
+            review: string
+        }
+        
+        class Attendance {
+            id: int
+            user_id: int
+            event_id: int
+            check_in_time: string
+        }
+        
+        class Category {
+            id: int
+            name: string
+        }
+        
+        class Message {
+            id: int
+            event_id: int
+            user_id: int
+            message: string
+            sent_at: string
+        }
+        
+        class Notification {
+            id: int
+            user_id: int
+            content: string
+            is_read: boolean
+            created_at: string
+        }
+        
+        class Coordinates {
+            lat: number
+            long: number
+        }
+        
+        class EventData {
+            title: string
+            description: string
+            event_date: string
+            location_name: string
+            lat: number
+            long: number
+            event_pic: string
+            category_id: int
+        }
+        
+        class ProfileData {
+            name: string
+            bio: string
+            age: int
+            profile_pic: string
+        }
+        
+        class LoginData {
+            email: string
+            password: string
+        }
+        
+        class RegisterData {
+            name: string
+            email: string
+            password: string
+            bio: string
+            age: int
+            profile_pic: string
+        }
+    }
+    
+    namespace context {
+        class AuthContext {
+            <<Context>>
+            user: User
+            login: (email: string, password: string) => Promise<void>
+            register: (userData: RegisterData) => Promise<void>
+            logout: () => Promise<void>
+            isAuthenticated: boolean
+        }
+        
+        class EventContext {
+            <<Context>>
+            events: Event[]
+            loading: boolean
+            error: string
+            
+            loadEvents(): void
+            filterByCategory(categoryId: int): void
+            search(query: string): void
+        }
+        
+        class NotificationContext {
+            <<Context>>
+            notifications: Notification[]
+            
+            markAsRead(notificationId: int): void
+            clearNotifications(): void
+        }
+    }
+    
+    %% Component Relationships
+    components.App "1" --> "*" components.EventCard
+    components.App "1" --> "1" components.Navigation
+    components.App "1" --> "*" components.Profile
+    components.App "1" --> "*" components.EventList
+    components.App "1" --> "*" components.Chat
+    components.App "1" --> "*" components.EventForm
+    components.App "1" --> "*" components.Login
+    components.App "1" --> "*" components.Register
+    components.App "1" --> "1" components.Notifications
+    components.App "1" --> "*" components.Rating
+    components.App "1" --> "*" components.Map
+    
+    components.EventList "1" --> "*" components.EventCard
+    components.EventCard "1" --> "1" components.Rating
+    
+    %% Service Relationships
+    services.AuthService "1" --> "1" utils.API
+    services.EventService "1" --> "1" utils.API
+    services.SwipeService "1" --> "1" utils.API
+    services.ChatService "1" --> "1" utils.API
+    services.RatingService "1" --> "1" utils.API
+    services.NotificationService "1" --> "1" utils.API
+    services.UserService "1" --> "1" utils.API
+    services.LocationService "1" --> "1" utils.API
+    
+    %% Hook Relationships
+    hooks.useAuth "1" --> "1" services.AuthService
+    hooks.useEvents "1" --> "1" services.EventService
+    hooks.useSwipes "1" --> "1" services.SwipeService
+    hooks.useChat "1" --> "1" services.ChatService
+    hooks.useNotifications "1" --> "1" services.NotificationService
+    hooks.useLocation "1" --> "1" services.LocationService
+    
+    %% Context Relationships
+    context.AuthContext "1" --> "1" hooks.useAuth
+    context.EventContext "1" --> "1" hooks.useEvents
+    context.NotificationContext "1" --> "1" hooks.useNotifications
+    
+    %% Component-Service Relationships
+    components.App "1" --> "1" context.AuthContext
+    components.App "1" --> "1" context.EventContext
+    components.App "1" --> "1" context.NotificationContext
+    
+    components.EventCard "1" --> "1" hooks.useSwipes
+    components.Chat "1" --> "1" hooks.useChat
+    components.Notifications "1" --> "1" hooks.useNotifications
+    components.Map "1" --> "1" hooks.useLocation
+    
+    %% Utility Relationships
+    utils.API "1" --> "1" utils.Storage
+    utils.Validator "1" --> "1" utils.Formatter

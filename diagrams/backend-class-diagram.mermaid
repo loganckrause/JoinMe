@@ -1,0 +1,62 @@
+classDiagram
+    class DatabaseManager {
+        +engine
+        +SessionLocal
+        +get_db()
+    }
+
+    class BaseEntity {
+        <<Abstract>>
+        +int id
+        +datetime created_at
+    }
+
+    class User {
+        +String email
+        +String password_hash
+        +float safety_score
+        +update_safety_score(new_rating)
+    }
+
+    class Event {
+        +int creator_id
+        +int category_id
+        +datetime event_date
+        +Decimal lat
+        +Decimal long
+    }
+
+    class RecommendationService {
+        +LightFM model
+        +prepare_data(swipes, attendance, prefs)
+        +get_event_stack(user_id) List~int~
+    }
+
+    class SafetyService {
+        +verify_user_rating(rater_id, ratee_id)
+        +calculate_rep_decay(ratings)
+        +process_user_report(report_data)
+    }
+
+    class ScoringService {
+        +process_event_rating(user_id, event_id, score)
+        +calculate_event_popularity(event_id)
+    }
+
+    BaseEntity <|-- User
+    BaseEntity <|-- Event
+    BaseEntity <|-- Swipe
+    BaseEntity <|-- Attendance
+    BaseEntity <|-- User_Rating
+    BaseEntity <|-- Event_Rating
+
+    DatabaseManager ..> BaseEntity
+
+    ScoringService --> Event_Rating
+    ScoringService ..> Event
+    
+    RecommendationService ..> ScoringService
+    RecommendationService ..> Swipe
+    
+    SafetyService --> User_Rating
+    SafetyService ..> User
