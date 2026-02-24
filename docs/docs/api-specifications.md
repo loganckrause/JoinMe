@@ -10,9 +10,9 @@ This page documents the API specifications for the JoinMe backend service.
 
 The JoinMe API is a RESTful API built with FastAPI. It provides endpoints for user authentication, event management, and recommendations.
 
-## Endpoints
+## Events
 
-### Events
+### Create new event
 
 `POST /api/events`
 
@@ -40,3 +40,18 @@ The JoinMe API is a RESTful API built with FastAPI. It provides endpoints for us
 
 - `403 Forbidden`: User reputation is too low to host events.
 - `400 Bad Request`: Invalid date or missing fields.
+
+### Delete event
+**Purpose**: Allows a user to delete existing event.
+
+### Get event infromation
+**Purpose**: Allows a user to get details about existing event.
+
+### Update event infromation
+**Purpose**: Allows a user to edit details about existing event.
+
+## User
+
+### Register new user
+
+### User login
