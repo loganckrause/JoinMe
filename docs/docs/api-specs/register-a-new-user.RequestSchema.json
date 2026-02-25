@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","email","password","age"],"properties":{"name":{"type":"string"},"email":{"type":"string","format":"email"},"password":{"type":"string"},"age":{"type":"integer","minimum":18},"bio":{"type":"string"}},"title":"RegisterRequest"}}}}}

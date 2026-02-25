@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["event_id","is_interested"],"properties":{"event_id":{"type":"integer"},"is_interested":{"type":"boolean"}},"title":"SwipeRequest"}}}}}

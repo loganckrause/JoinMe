@@ -1,6 +1,8 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import type * as Plugin from "@docusaurus/types/src/plugin";
+import type * as OpenApiPlugin from "docusaurus-plugin-openapi-docs";
 
 const config: Config = {
   title: 'JoinMe',
@@ -32,7 +34,7 @@ const config: Config = {
   markdown: {
     mermaid: true,
   },
-  themes: ['@docusaurus/theme-mermaid'],
+  themes: ['@docusaurus/theme-mermaid', 'docusaurus-theme-openapi-docs'],
 
   presets: [
     [
@@ -43,7 +45,8 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/loganckrause/JoinMe/tree/main/docs/',
+          'https://github.com/loganckrause/JoinMe/tree/main/docs/',
+          docItemComponent: "@theme/ApiItem",
         },
         blog: false, // Disable blog for now
         theme: {
@@ -51,6 +54,25 @@ const config: Config = {
         },
       } satisfies Preset.Options,
     ],
+  ],
+  
+  plugins: [
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: "JoinMe_API", // plugin id
+        docsPluginId: "classic", // configured for preset-classic
+        config: {
+          petstore: {
+            specPath: "api/openapi-specs/JoinMe_API.yaml",
+            outputDir: "docs/api",
+            sidebarOptions: {
+              groupPathsBy: "tag",
+            },
+          } satisfies OpenApiPlugin.Options,
+        }
+      },
+    ]
   ],
 
   themeConfig: {
@@ -68,6 +90,12 @@ const config: Config = {
           sidebarId: 'tutorialSidebar',
           position: 'left',
           label: 'Documentation',
+        },
+        {
+          type: 'docSidebar',
+          sidebarId: 'apiSidebar',
+          position: 'left',
+          label: 'API',
         },
         {
           href: 'https://github.com/loganckrause/JoinMe',

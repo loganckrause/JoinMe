@@ -1,0 +1,1 @@
+{"parameters":[{"name":"lat","in":"query","schema":{"type":"number","format":"float"}},{"name":"long","in":"query","schema":{"type":"number","format":"float"}}]}
