@@ -92,12 +92,6 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          type: 'docSidebar',
-          sidebarId: 'apiSidebar',
-          position: 'left',
-          label: 'API',
-        },
-        {
           href: 'https://github.com/loganckrause/JoinMe',
           label: 'GitHub',
           position: 'right',

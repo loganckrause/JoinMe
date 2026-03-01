@@ -39,3 +39,15 @@ GIT_USER=<Your GitHub username> yarn deploy
 ```
 
 If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+
+## Adding API Specs
+
+To add/edit endpoints, edit the specification sheet in the /docs/api/openapi-specs directory
+
+### Generate API Docs
+
+yarn docusaurus gen-api-docs all
+
+### Clean/Remove API Docs
+
+yarn docusaurus clean-api-docs all

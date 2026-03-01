@@ -1,0 +1,1 @@
+{"parameters":[{"name":"type","in":"query","description":"Filter by attending or hosting","required":false,"schema":{"type":"string","enum":["attending","hosting"]}}]}

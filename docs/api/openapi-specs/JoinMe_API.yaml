@@ -51,6 +51,116 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
 
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags:
+        - User
+      responses:
+        "200":
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      summary: Update user profile
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: User profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/me/events:
+    get:
+      summary: Get events the current user is attending or hosting
+      tags:
+        - User
+        - Events
+      parameters:
+        - name: type
+          in: query
+          description: Filter by attending or hosting
+          required: false
+          schema:
+            type: string
+            enum: [attending, hosting]
+      responses:
+        "200":
+          description: List of user's events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+
+  /events/{eventId}/attendees:
+    get:
+      summary: Get a list of users attending the event
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of attendees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPublic"
+
+  /users/{userId}:
+    get:
+      summary: Get public profile of another user
+      tags:
+        - User
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Public user profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+
+  /categories:
+    get:
+      summary: Get all available event categories
+      security: [] # Overrides global JWT requirement
+      tags:
+        - Events
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
   /events:
     get:
       summary: Get event feed (Discover)
@@ -95,20 +205,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/Event"
 
-  /swipes:
-    post:
-      summary: Perform a swipe on an event
+  /events/{eventId}:
+    get:
+      summary: Get event details
       tags:
-        - Swipes
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    patch:
+      summary: Update event details
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SwipeRequest"
+              $ref: "#/components/schemas/EventUpdate"
       responses:
         "200":
-          description: Swipe recorded
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      summary: Delete an event
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Event deleted
 
   /events/{eventId}/chat:
     get:
@@ -152,6 +302,21 @@ paths:
       responses:
         "201":
           description: Message sent
+
+  /swipes:
+    post:
+      summary: Perform a swipe on an event
+      tags:
+        - Swipes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwipeRequest"
+      responses:
+        "200":
+          description: Swipe recorded
 
 components:
   securitySchemes:
@@ -248,6 +413,30 @@ components:
           type: string
           format: date-time
 
+    UserPublic:
+      type: object
+      description: A public-facing user profile that hides sensitive information like email.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        bio:
+          type: string
+        age:
+          type: integer
+        profile_pic:
+          type: string
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: "Sports"
+
     EventCreate:
       type: object
       required: [category_id, title, event_date, lat, long]
@@ -270,6 +459,39 @@ components:
           type: number
           format: float
         event_pic:
+          type: string
+
+    EventUpdate:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        event_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+        lat:
+          type: number
+          format: float
+        long:
+          type: number
+          format: float
+        event_pic:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        profile_pic:
           type: string
 
     SwipeRequest:
