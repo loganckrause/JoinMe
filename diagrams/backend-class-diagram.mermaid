@@ -6,7 +6,7 @@ classDiagram
     }
 
     class BaseEntity {
-        <<Abstract>>
+        <<Interface>>
         +int id
         +datetime created_at
     }
@@ -26,6 +26,43 @@ classDiagram
         +Decimal long
     }
 
+    class UserCreate {
+        <<Pydantic>>
+        +String email
+        +String password
+    }
+
+    class UserRead {
+        <<Pydantic>>
+        +int id
+        +String email
+    }
+
+    class EventCreate {
+        <<Pydantic>>
+        +int category_id
+        +datetime event_date
+    }
+
+    class Token {
+        <<Pydantic>>
+        +String access_token
+        +String token_type
+    }
+
+    class UserRouter {
+        +APIRouter router
+        +signup(user: UserCreate)
+        +login(form_data: OAuth2PasswordRequestForm)
+        +get_me(token: String)
+    }
+
+    class EventRouter {
+        +APIRouter router
+        +get_feed(user_id: int)
+        +create_event(event: EventCreate)
+    }
+
     class RecommendationService {
         +LightFM model
         +prepare_data(swipes, attendance, prefs)
@@ -36,6 +73,11 @@ classDiagram
         +verify_user_rating(rater_id, ratee_id)
         +calculate_rep_decay(ratings)
         +process_user_report(report_data)
+    }
+
+    class AuthService {
+        +verify_password(plain, hashed)
+        +create_access_token(data)
     }
 
     class ScoringService {
@@ -50,6 +92,25 @@ classDiagram
     BaseEntity <|-- User_Rating
     BaseEntity <|-- Event_Rating
 
+    %% Entity Interactions
+    User "1" --> "*" Event : creates
+    User "1" --> "*" Swipe : makes
+    Event "1" --> "*" Swipe : receives
+    User "1" --> "*" Attendance : attends
+    Event "1" --> "*" Attendance : has
+    User "1" --> "*" User_Rating : gives
+    User "1" --> "*" User_Rating : receives
+    User "1" --> "*" Event_Rating : gives
+    Event "1" --> "*" Event_Rating : receives
+
+    UserRouter ..> UserCreate : validates
+    UserRouter ..> UserRead : returns
+    UserRouter ..> AuthService : uses
+    UserRouter ..> User : manages
+    EventRouter ..> EventCreate : validates
+    EventRouter ..> RecommendationService : calls
+    EventRouter ..> Event : returns
+
     DatabaseManager ..> BaseEntity
 
     ScoringService --> Event_Rating
@@ -60,3 +121,5 @@ classDiagram
     
     SafetyService --> User_Rating
     SafetyService ..> User
+
+    AuthService ..> Token : creates

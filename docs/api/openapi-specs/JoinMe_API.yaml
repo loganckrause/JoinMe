@@ -1,0 +1,519 @@
+openapi: 3.0.3
+info:
+  title: JoinMe API
+  description: Core API specification for the JoinMe event matching application.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Python Backend Server
+
+security:
+  - bearerAuth: [] # Applies JWT globally. Overridden on public routes.
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      security: [] # Public route
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /auth/login:
+    post:
+      summary: Authenticate user and receive JWT
+      security: [] # Public route
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags:
+        - User
+      responses:
+        "200":
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    patch:
+      summary: Update user profile
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: User profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/me/events:
+    get:
+      summary: Get events the current user is attending or hosting
+      tags:
+        - User
+        - Events
+      parameters:
+        - name: type
+          in: query
+          description: Filter by attending or hosting
+          required: false
+          schema:
+            type: string
+            enum: [attending, hosting]
+      responses:
+        "200":
+          description: List of user's events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+
+  /events/{eventId}/attendees:
+    get:
+      summary: Get a list of users attending the event
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of attendees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPublic"
+
+  /users/{userId}:
+    get:
+      summary: Get public profile of another user
+      tags:
+        - User
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Public user profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+
+  /categories:
+    get:
+      summary: Get all available event categories
+      security: [] # Overrides global JWT requirement
+      tags:
+        - Events
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /events:
+    get:
+      summary: Get event feed (Discover)
+      description: Returns events based on user preferences and location.
+      tags:
+        - Events
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+            format: float
+        - name: long
+          in: query
+          schema:
+            type: number
+            format: float
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      summary: Create a new event
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventCreate"
+      responses:
+        "201":
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{eventId}:
+    get:
+      summary: Get event details
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    patch:
+      summary: Update event details
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdate"
+      responses:
+        "200":
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      summary: Delete an event
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Event deleted
+
+  /events/{eventId}/chat:
+    get:
+      summary: Get chat messages for an event
+      tags:
+        - Chat
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventChat"
+    post:
+      summary: Send a message in an event chat
+      tags:
+        - Chat
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+      responses:
+        "201":
+          description: Message sent
+
+  /swipes:
+    post:
+      summary: Perform a swipe on an event
+      tags:
+        - Swipes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwipeRequest"
+      responses:
+        "200":
+          description: Swipe recorded
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # -- Auth Schemas --
+    RegisterRequest:
+      type: object
+      required: [name, email, password, age]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        age:
+          type: integer
+          minimum: 18
+        bio:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Access Token
+        user:
+          $ref: "#/components/schemas/User"
+
+    # -- Entity Schemas (Mapped from ER Diagram) --
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        bio:
+          type: string
+        age:
+          type: integer
+        profile_pic:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        creator_id:
+          type: integer
+        category_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        event_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+        lat:
+          type: number
+          format: float
+        long:
+          type: number
+          format: float
+        event_pic:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    UserPublic:
+      type: object
+      description: A public-facing user profile that hides sensitive information like email.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        bio:
+          type: string
+        age:
+          type: integer
+        profile_pic:
+          type: string
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: "Sports"
+
+    EventCreate:
+      type: object
+      required: [category_id, title, event_date, lat, long]
+      properties:
+        category_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        event_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+        lat:
+          type: number
+          format: float
+        long:
+          type: number
+          format: float
+        event_pic:
+          type: string
+
+    EventUpdate:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        event_date:
+          type: string
+          format: date-time
+        location_name:
+          type: string
+        lat:
+          type: number
+          format: float
+        long:
+          type: number
+          format: float
+        event_pic:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        profile_pic:
+          type: string
+
+    SwipeRequest:
+      type: object
+      required: [event_id, is_interested]
+      properties:
+        event_id:
+          type: integer
+        is_interested:
+          type: boolean
+
+    EventChat:
+      type: object
+      properties:
+        id:
+          type: integer
+        event_id:
+          type: integer
+        user_id:
+          type: integer
+        message:
+          type: string
+        sent_at:
+          type: string
+          format: date-time

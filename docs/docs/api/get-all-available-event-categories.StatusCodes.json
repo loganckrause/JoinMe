@@ -1,0 +1,1 @@
+{"responses":{"200":{"description":"List of categories","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string","example":"Sports"}},"title":"Category"}}}}}}}
