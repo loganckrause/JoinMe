@@ -106,11 +106,11 @@ const config: Config = {
           items: [
             {
               label: 'Design Overview',
-              to: '/docs/design-overview',
+              to: '/docs/guides/design-overview',
             },
             {
               label: 'API Specifications',
-              to: '/docs/api-specifications',
+              to: '/docs/api/joinme-api',
             },
           ],
         },

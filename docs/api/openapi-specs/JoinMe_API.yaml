@@ -105,27 +105,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/Event"
 
-  /events/{eventId}/attendees:
-    get:
-      summary: Get a list of users attending the event
-      tags:
-        - Events
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: List of attendees
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UserPublic"
-
   /users/{userId}:
     get:
       summary: Get public profile of another user
@@ -259,6 +238,27 @@ paths:
       responses:
         "204":
           description: Event deleted
+
+  /events/{eventId}/attendees:
+    get:
+      summary: Get a list of users attending the event
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of attendees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserPublic"
 
   /events/{eventId}/chat:
     get:
