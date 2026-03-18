@@ -1,0 +1,6 @@
+fastapi
+sqlmodel
+aiomysql
+uvicorn[standard]
+passlib[bcrypt]
+joserfc
