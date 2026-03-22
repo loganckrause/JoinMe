@@ -1,10 +1,22 @@
 import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useState, useCallback } from 'react';
+import { router } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
 
 export default function LoginHelpScreen() {
+
+    const [email, setEmail] = useState('');
+
+    useFocusEffect(
+        useCallback(() => {
+            setEmail('');
+        }, [])
+    )
+
     return (
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#151718'}}
@@ -18,12 +30,14 @@ export default function LoginHelpScreen() {
                         placeholder="Enter your email"
                         placeholderTextColor='#888'
                         style={styles.input}
+                        value={email}
+                        onChangeText={setEmail}
                     />
                 </ThemedView>
                 <TouchableOpacity>
                     <ThemedText type="defaultSemiBold" style={styles.button}>Request password reset</ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push('/login')}>
                     <ThemedText style={styles.buttoncan}>Back to Sign In</ThemedText>
                 </TouchableOpacity>
             </ThemedView>
