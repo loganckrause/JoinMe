@@ -9,7 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 export default function ChoicePage() {
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#fff', dark: '#151718'}}
+            headerBackgroundColor='#0a0a0bff'
         >
             <ThemedView style={styles.container}>
                 <ThemedText style={styles.Intrtitle}>JoinMe</ThemedText>
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
         fontSize: 60,
         textAlign: 'center',
         padding: 40,
-        marginTop: 75,
+        marginTop: 100,
         marginBottom: 30,
         fontFamily: Fonts.serif,
     },

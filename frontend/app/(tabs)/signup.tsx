@@ -35,7 +35,7 @@ export default function SignupScreen() {
 
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#fff', dark: '#151718'}}
+            headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Sign-up</ThemedText>

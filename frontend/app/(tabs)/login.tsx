@@ -25,7 +25,7 @@ export default function LoginScreen() {
 
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#fff', dark: '#151718'}}
+            headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Login</ThemedText>
