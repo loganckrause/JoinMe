@@ -19,6 +19,7 @@ export default function LoginScreen() {
         useCallback(() => {
             setEmail('');
             setPassword('');
+            setSecure(true);
         }, [])
     )
 

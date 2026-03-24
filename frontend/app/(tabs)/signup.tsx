@@ -28,6 +28,8 @@ export default function SignupScreen() {
             setEmail('');
             setPassword('');
             setCnfmPassword('');
+            setSecure(true);
+            setSecureConfirm(true);
         }, [])
     )
 
