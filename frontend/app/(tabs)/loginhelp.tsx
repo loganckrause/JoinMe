@@ -22,7 +22,7 @@ export default function LoginHelpScreen() {
             headerBackgroundColor={{ light: '#fff', dark: '#151718'}}
         >
             <ThemedView style={styles.container}>
-                <ThemedText type="title" style={styles.title}>Forgot password?</ThemedText>
+                <ThemedText type="title" style={styles.title}>Forgotten password?</ThemedText>
                 <ThemedText style={styles.txt}>Please enter your email to get a OTP</ThemedText>
                 <ThemedView style={styles.inputContainer}>
                     <ThemedText>Email</ThemedText>
