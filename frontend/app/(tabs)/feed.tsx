@@ -13,7 +13,7 @@ export default function FeedScreen() {
     const events = [                 //Placeholder event data
         {
             title: "Rock Climbing",
-            number: "3",
+            number: "2",
             location: "Philadelphia",
             image: "https://plus.unsplash.com/premium_photo-1672280940819-7ddad7c44fe1?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGluZG9vciUyMHJvY2slMjBjbGltYmluZ3xlbnwwfHwwfHx8MA%3D%3D",
         },
@@ -56,6 +56,14 @@ export default function FeedScreen() {
         }
     )
 
+    const ick = () => {
+        if (event.number == "2") {
+            return "person.2"
+        } else {
+            return "person.3"
+        }
+    }
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <ThemedView style={{ backgroundColor: '#0a0a0bff'}}>
@@ -67,7 +75,7 @@ export default function FeedScreen() {
                         <Image source={{ uri: event.image }} style={styles.eventImage} />
                         <ThemedView style={styles.row}>
                             <ThemedText style={styles.text}>{event.title}</ThemedText>
-                            <ThemedText style={styles.text}>{event.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
+                            <ThemedText style={styles.text}>{event.number}{' '}<IconSymbol size={35} name={ick()} color="#fff" /></ThemedText>
                         </ThemedView>
                         <ThemedText style={styles.text2}>{event.location}</ThemedText>
                     </ThemedView>
