@@ -65,6 +65,12 @@ venv/
 env/
 .env/
 
+# Environment files
+.env
+
+# Database for testing
+joinme.db
+
 # Pipenv
 # Pipfile.lock (should be committed)
 

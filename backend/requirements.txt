@@ -1,6 +1,6 @@
-fastapi
+fastapi[standard]
 sqlmodel
 aiomysql
 uvicorn[standard]
-passlib[bcrypt]
-joserfc
+pwdlib[argon2]
+PyJWT

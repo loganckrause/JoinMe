@@ -1,33 +1,95 @@
-from fastapi import APIRouter
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlmodel import Session, select
+
+from app.core.database import get_session
+from app.core.dependencies import get_current_user
+from app.models.user import User
+from app.models.event import Event
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
 class EventPayload(BaseModel):
     title: str
+    description: str
+    event_date: datetime
+    max_capacity: int
+    location: str
+    latitude: float
+    longitude: float
+    category_id: int
+
+
+class EventUpdatePayload(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    event_date: datetime | None = None
+    max_capacity: int | None = None
+    location: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    category_id: int | None = None
 
 
 @router.get("/")
-async def get_event_feed():
-    return []
+async def get_event_feed(session: Session = Depends(get_session)):
+    events = session.exec(select(Event)).all()
+    return events
 
 
 @router.post("/")
-async def create_new_event(payload: EventPayload):
-    return {}
+async def create_new_event(
+    payload: EventPayload,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    new_event = Event(
+        **payload.model_dump(), creator_id=current_user.id, event_picture=b""
+    )
+    session.add(new_event)
+    session.commit()
+    session.refresh(new_event)
+    return new_event
 
 
 @router.patch("/{eventId}")
-async def update_event(eventId: int):
-    return {}
+async def update_event(
+    eventId: int,
+    payload: EventUpdatePayload,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    event = session.get(Event, eventId)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event_data = payload.model_dump(exclude_unset=True)
+    for key, value in event_data.items():
+        setattr(event, key, value)
+
+    session.add(event)
+    session.commit()
+    session.refresh(event)
+    return event
 
 
 @router.delete("/{eventId}")
-async def delete_event(eventId: int):
-    return {}
+async def delete_event(
+    eventId: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    event = session.get(Event, eventId)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    session.delete(event)
+    session.commit()
+    return {"message": "Event deleted successfully"}
 
 
 @router.get("/{eventId}/attendees")
-async def get_event_attendees(eventId: int):
-    return []
+async def get_event_attendees(eventId: int, session: Session = Depends(get_session)):
+    # Logic to fetch users linked to this event
+    return [{"id": 1, "name": "Attendee 1"}]
