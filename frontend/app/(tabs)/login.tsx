@@ -1,6 +1,7 @@
 import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from '@/components/themed-text';
@@ -10,10 +11,21 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function LoginScreen() {
     const [secure, setSecure] = useState(true);
-    const navigator = useNavigation();
+
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    useFocusEffect(
+        useCallback(() => {
+            setEmail('');
+            setPassword('');
+            setSecure(true);
+        }, [])
+    )
+
     return (
         <ParallaxScrollView
-            headerBackgroundColor={{ light: '#fff', dark: '#151718'}}
+            headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Login</ThemedText>
@@ -23,6 +35,8 @@ export default function LoginScreen() {
                         placeholder="Enter your email"
                         placeholderTextColor='#888'
                         style={styles.input}
+                        value={email}
+                        onChangeText={setEmail}
                     />
                     <ThemedText>Password</ThemedText>
                     <ThemedView style={styles.passwordContainer}>
@@ -31,6 +45,8 @@ export default function LoginScreen() {
                             placeholderTextColor='#888'
                             style={styles.input}
                             secureTextEntry={secure}
+                            value={password}
+                            onChangeText={setPassword}
                         />
                         <TouchableOpacity
                             onPress={() => setSecure(!secure)}
@@ -43,14 +59,14 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </ThemedView>
                 </ThemedView>
-                <TouchableOpacity onPress={() => navigator.navigate('LoginHelp')} >
+                <TouchableOpacity onPress={() => router.push('/loginhelp')} >
                     <ThemedText style={styles.link}>Forgot Password?</ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigator.navigate('Profile')}>
+                <TouchableOpacity>
                     <ThemedText type="defaultSemiBold" style={styles.button}>Login</ThemedText>
                 </TouchableOpacity>
             </ThemedView>
-            <TouchableOpacity onPress={() => navigator.navigate('Signup')}>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
                 <ThemedText style={styles.buttoncl}>Sign Up</ThemedText>
             </TouchableOpacity>
         </ParallaxScrollView>
@@ -62,7 +78,6 @@ const styles = StyleSheet.create({
   container: {
     gap: 16,
     marginTop: 10,
-    marginBottom: 225,
   },
   title: {
     textAlign: 'center',
