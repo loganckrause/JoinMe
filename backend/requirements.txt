@@ -1,0 +1,6 @@
+fastapi[standard]
+sqlmodel
+aiomysql
+uvicorn[standard]
+pwdlib[argon2]
+PyJWT
