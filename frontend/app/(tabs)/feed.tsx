@@ -8,6 +8,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
+import Sidebar from '@/components/ui/sidebar';
+import { router } from '@/.expo/types/router';
+
+const MOCK_USER = {
+    name: "John Doe",
+    // photoUri: "https://randomuser.me/api/portraits/lego/1.jpg"
+}
 
 
 export default function FeedScreen() {
@@ -55,6 +62,7 @@ export default function FeedScreen() {
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
     const navigator = useNavigation();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const handleSwipeResult = () => {
         setEvent(nextEvent);
@@ -100,10 +108,16 @@ export default function FeedScreen() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <ThemedView style={styles.header}>
-                <ThemedView style={styles.headerSpacer} />
+            
+            <ThemedView style={styles.topBar}>
+                <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
+                </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
                 <NotificationBell />
+                <TouchableOpacity >
+                   <IconSymbol name="plus" size={25} color="white"  />
+                </TouchableOpacity>
             </ThemedView>
             <ThemedView style={styles.container}>
                 <ThemedView style={styles.eventCard}>
@@ -134,7 +148,15 @@ export default function FeedScreen() {
                         <ThemedText style={styles.yesbuttText}>✓</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
+                
+            {/* Sidebar */}
+            <Sidebar
+                visible={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                user={MOCK_USER}
+            />
             </ThemedView>
+            
         </GestureHandlerRootView>
     )
 }
@@ -161,6 +183,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 40,
         backgroundColor: '#0a0a0bff',
+        // fontSize: 50,
+        padding: 30,
+        marginTop: 50,
     },
     eventCard: {
         position: 'absolute',
@@ -227,5 +252,13 @@ const styles = StyleSheet.create({
         color: '#59d386ff',
         padding: 10,
         bottom: -3,
+    },
+    topBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        
     }
 });
