@@ -114,17 +114,17 @@ export default function SignupScreen() {
                     </ThemedView>
                 </ThemedView>
             </ThemedView>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/interests-pick')}>
                 <ThemedText type="defaultSemiBold" style={styles.button}>Sign-up</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/login')}>
-                <ThemedText style={styles.buttoncl}>Login</ThemedText>
             </TouchableOpacity>
         </ParallaxScrollView>
     )
 }
 
 const styles = StyleSheet.create({
+    backButton: {
+        alignSelf: 'flex-start',
+    },
     container: {
         gap: 16,
         marginTop: 10,
@@ -170,13 +170,5 @@ const styles = StyleSheet.create({
         borderRadius: 100,
         alignItems: 'center',
         marginTop: 5,
-    },
-    buttoncl: {
-        textAlign: 'center',
-        padding: 14,
-        borderRadius: 100,
-        color: '#fff',
-        borderColor: '#fff',
-        borderWidth: 1,
     },
 });
