@@ -15,7 +15,7 @@ import { useFocusEffect } from 'expo-router';
 const HEADER_HEIGHT = 80;
 
 type Props = PropsWithChildren<{
-  headerImage: ReactElement;
+  headerImage?: ReactElement;
   headerBackgroundColor: { dark: string; light: string };
 }>;
 
