@@ -23,7 +23,6 @@ export default function LoginHelpScreen() {
         >
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Forgotten password?</ThemedText>
-                <ThemedText style={styles.txt}>Please enter your email to get a OTP</ThemedText>
                 <ThemedView style={styles.inputContainer}>
                     <ThemedText>Email</ThemedText>
                     <TextInput
@@ -37,8 +36,8 @@ export default function LoginHelpScreen() {
                 <TouchableOpacity>
                     <ThemedText type="defaultSemiBold" style={styles.button}>Request password reset</ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push('/login')}>
-                    <ThemedText style={styles.buttoncan}>Back to Sign In</ThemedText>
+                <TouchableOpacity onPress={() => router.back()} >
+                    <ThemedText style={styles.buttoncan}>Back to Login</ThemedText>
                 </TouchableOpacity>
             </ThemedView>
         </ParallaxScrollView>
@@ -52,9 +51,8 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     title: {
-        textAlign: 'center',
         fontSize: 30,
-        textAlign: 'left',
+        textAlign: 'center',
     },
     input: {
         borderWidth: 1,
@@ -66,18 +64,17 @@ const styles = StyleSheet.create({
         paddingRight: 50,
     },
     inputContainer: {
-        marginBottom: 0,
         gap: 8,
     },
     button: {
-    backgroundColor: '#59d386ff',
-    textAlign: 'center',
-    color: '#fff',
-    padding: 14,
-    borderRadius: 100,
-    alignItems: 'center',
-    marginTop: 5,
-    marginBottom: 290,
+        backgroundColor: '#59d386ff',
+        textAlign: 'center',
+        color: '#fff',
+        padding: 14,
+        borderRadius: 100,
+        alignItems: 'center',
+        marginTop: 5,
+        marginBottom: 290,
   },
   buttoncan: {
     textAlign: 'center',
@@ -86,9 +83,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     borderColor: '#fff',
     borderWidth: 1,
-  },
-  txt: {
-    fontSize: 16,
-    marginBottom: 20,
   },
 })

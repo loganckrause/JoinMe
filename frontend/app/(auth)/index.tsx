@@ -1,22 +1,20 @@
 import { StyleSheet, TouchableOpacity, View, Text} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 
 export default function HomeScreen(){
-  const navigator = useNavigation();
   return (
-    <View style={styles.container}>
+    
+    <View style={styles.container}>          
       <Text style={styles.title}>JoinMe</Text>
-      <View style={styles.buttonContainer} 
-      // onPress={() => navigator.navigate("signup")}
-      >
-        <TouchableOpacity style={styles.registerBtn}>
-          <Text style={styles.btnText}>Register</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.registerBtn} onPress={() => router.push('/signup')}>
+          <Text style={styles.btnText}>Sign Up</Text>
         </TouchableOpacity>
      
       <TouchableOpacity
         style={styles.loginBtn}
-        onPress={() => navigator.navigate("login")}>
+        onPress={() => router.push('/login')}>
         <Text style={styles.btnText}>Login</Text>
       </TouchableOpacity>
     </View>
