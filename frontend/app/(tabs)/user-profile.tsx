@@ -7,11 +7,17 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+
+import { useAuthStore } from '@/store/auth';
+import { router } from "expo-router";
 
 export default function UserProfile() {
-  const navigator = useNavigation();
+  const logout = useAuthStore(state => state.logout);
 
+  const handleLogout = () => {
+        logout();                        // sets isAuthenticated = false
+        router.replace('/(auth)');       
+  };
     // Placeholder user data - later will connect to database
   const user = {
     name: "John Doe",
@@ -60,6 +66,11 @@ export default function UserProfile() {
 
         <TouchableOpacity style={styles.outlineBtn}>
           <Text style={styles.outlineText}>See events</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity style={styles.logOutBtn} onPress={handleLogout}>
+          <Text style={styles.outlineText}>Log Out</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -147,6 +158,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 25,
+  },
+  logOutBtn:{
+    borderWidth: 1,
+    borderColor: "#da1414",
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    marginTop: 30
   },
   outlineText: {
     color: "#fff",
