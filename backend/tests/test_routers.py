@@ -67,6 +67,51 @@ def test_chat_endpoints():
     assert post_resp.status_code == 422
 
 
+def test_preferences_routes(test_user_token_and_id):
+    token = test_user_token_and_id["token"]
+
+    # Get preferences (should be empty initially)
+    get_resp = client.get(
+        "/preferences/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert isinstance(get_resp.json(), list)
+
+    # Create a single preference
+    post_resp = client.post(
+        "/preferences/",
+        json={"category_id": 1},
+        headers=auth_header(token),
+    )
+    assert post_resp.status_code == 200
+    assert post_resp.json()["category_id"] == 1
+
+    # Bulk create preferences
+    bulk_post_resp = client.post(
+        "/preferences/bulk",
+        json={"category_ids": [2, 3, 4]},
+        headers=auth_header(token),
+    )
+    assert bulk_post_resp.status_code == 200
+    assert bulk_post_resp.json()["added_count"] == 3
+
+    # Get all preferences for the current user
+    get_all_resp = client.get(
+        "/preferences/",
+        headers=auth_header(token),
+    )
+    assert get_all_resp.status_code == 200
+    assert len(get_all_resp.json()) == 4  # 1 + 3 from bulk
+
+    # Delete a specific preference
+    delete_resp = client.delete(
+        "/preferences/1",
+        headers=auth_header(token),
+    )
+    assert delete_resp.status_code == 200
+
+
 def test_event_flow(test_user_token_and_id):
     token = test_user_token_and_id["token"]
 
@@ -147,4 +192,3 @@ def test_unauthenticated_routes():
     for path, method in auth_required_endpoints:
         response = getattr(client, method)(path)
         assert response.status_code == 401
-

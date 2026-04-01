@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
-
+from typing import TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Column, LargeBinary, Relationship
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Event(SQLModel, table=True):
