@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 
 from app.core.database import create_db_and_tables
-from app.routers import auth, categories, chat, events, swipes, users, preferences
+from app.routers import auth, categories, chat, events, notifications, swipes, users, preferences
 
 
 @asynccontextmanager
@@ -33,6 +33,7 @@ app.include_router(auth.router)
 app.include_router(categories.router)
 app.include_router(chat.router)
 app.include_router(events.router)
+app.include_router(notifications.router)
 app.include_router(swipes.router)
 app.include_router(users.router)
 app.include_router(preferences.router)
