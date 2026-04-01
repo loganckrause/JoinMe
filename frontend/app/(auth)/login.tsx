@@ -1,7 +1,8 @@
-import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
+import { useAuthStore } from '@/store/auth';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from '@/components/themed-text';
@@ -11,9 +12,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function LoginScreen() {
     const [secure, setSecure] = useState(true);
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { login } = useAuthStore();
 
     useFocusEffect(
         useCallback(() => {
@@ -22,6 +24,23 @@ export default function LoginScreen() {
             setSecure(true);
         }, [])
     )
+
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await login(email, password);
+            router.replace('/(tabs)/feed');
+        } catch (error) {
+            Alert.alert('Login Failed', error instanceof Error ? error.message : 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <ParallaxScrollView
@@ -37,6 +56,7 @@ export default function LoginScreen() {
                         style={styles.input}
                         value={email}
                         onChangeText={setEmail}
+                        editable={!loading}
                     />
                     <ThemedText>Password</ThemedText>
                     <ThemedView style={styles.passwordContainer}>
@@ -47,10 +67,12 @@ export default function LoginScreen() {
                             secureTextEntry={secure}
                             value={password}
                             onChangeText={setPassword}
+                            editable={!loading}
                         />
                         <TouchableOpacity
                             onPress={() => setSecure(!secure)}
                             style={styles.toggle}
+                            disabled={loading}
                         >
                             <IconSymbol
                                 name={secure ? 'eye.slash' : 'eye'}
@@ -59,14 +81,16 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </ThemedView>
                 </ThemedView>
-                <TouchableOpacity onPress={() => router.push('/loginhelp')} >
+                <TouchableOpacity onPress={() => router.push('/loginhelp')} disabled={loading}>
                     <ThemedText style={styles.link}>Forgot Password?</ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity>
-                    <ThemedText type="defaultSemiBold" style={styles.button}>Login</ThemedText>
+                <TouchableOpacity onPress={handleLogin} disabled={loading}>
+                    <ThemedText type="defaultSemiBold" style={styles.button}>
+                        {loading ? 'Logging in...' : 'Login'}
+                    </ThemedText>
                 </TouchableOpacity>
             </ThemedView>
-            <TouchableOpacity onPress={() => router.push('/signup')}>
+            <TouchableOpacity onPress={() => router.push('/signup')} disabled={loading}>
                 <ThemedText style={styles.buttoncl}>Sign Up</ThemedText>
             </TouchableOpacity>
         </ParallaxScrollView>
