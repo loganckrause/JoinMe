@@ -8,7 +8,7 @@ export function NotificationBell() {
     const unreadCount = 3;
 
     return (
-        <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.container}>
+        <TouchableOpacity onPress={() => router.push('/notifications')} >
             <IconSymbol name="bell.fill" size={28} color="#fff" />
             {unreadCount > 0 && (
                 <View style={styles.badge}>
