@@ -8,6 +8,8 @@ class Notification(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     content: str
+    is_read: bool = Field(default=False)
+    notification_type: str = Field(default="general")
     created_at: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

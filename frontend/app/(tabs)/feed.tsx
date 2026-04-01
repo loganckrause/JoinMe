@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { NotificationBell } from '@/components/notification-bell';
 
 
 export default function FeedScreen() {
@@ -66,8 +67,10 @@ export default function FeedScreen() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <ThemedView style={{ backgroundColor: '#0a0a0bff'}}>
+            <ThemedView style={styles.header}>
+                <ThemedView style={styles.headerSpacer} />
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
+                <NotificationBell />
             </ThemedView>
             <ThemedView style={styles.container}>
                 <GestureDetector gesture={panGesture}>
@@ -99,11 +102,22 @@ const styles = StyleSheet.create({
         height: '100%',
         alignItems: 'center',
     },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#0a0a0bff',
+        paddingTop: 50,
+        paddingBottom: 30,
+        paddingHorizontal: 20,
+    },
+    headerSpacer: {
+        width: 44,
+        backgroundColor: '#0a0a0bff',
+    },
     title: {
         textAlign: 'center',
         fontSize: 40,
-        padding: 30,
-        marginTop: 50,
         backgroundColor: '#0a0a0bff',
     },
     eventCard: {
