@@ -1,8 +1,13 @@
 from sqlmodel import Field, SQLModel, create_engine, Session
+from app.core.config import settings
 
-sqlite_url = "sqlite:///./joinme.db"
-
-engine = create_engine(sqlite_url, echo=True, connect_args={"check_same_thread": False})
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=True,
+    connect_args=(
+        {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
+    ),
+)
 
 
 def create_db_and_tables():
@@ -16,6 +21,7 @@ def create_db_and_tables():
     from app.models.swipe import Swipe
     from app.models.user_rating import UserRating
     from app.models.user import User
+    from app.models.user_preference import UserPreference
 
     # Creates all tables defined as SQLModel subclasses
     SQLModel.metadata.create_all(engine)
