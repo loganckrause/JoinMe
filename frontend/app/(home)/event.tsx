@@ -1,5 +1,6 @@
 import { StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useMemo } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from '@/components/themed-text';
@@ -7,9 +8,8 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function EventScreen() {
-    const route = useRoute();
-    const navigator = useNavigation();
-    const { event } = route.params;
+    const { event: eventParam } = useLocalSearchParams();
+    const event = useMemo(() => JSON.parse(eventParam as string), [eventParam]);
     
     const user = {
         name: "John Doe",
@@ -28,13 +28,7 @@ export default function EventScreen() {
         ]
     };
 
-    const ick = () => {
-        if (event.number == "2") {
-            return "person.2"
-        } else {
-            return "person.3"
-        }
-    }
+
 
     return (
         <ParallaxScrollView
@@ -46,7 +40,7 @@ export default function EventScreen() {
                         source={{ uri: event.image }}
                         style={{ width: '100%', height: '100%' }}
                     />
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => navigator.goBack()} style={styles.backArrow}>
+                    <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} style={styles.backArrow}>
                         <ThemedText style={styles.bA}>←</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
@@ -61,7 +55,7 @@ export default function EventScreen() {
                         <ThemedText style={styles.title2}>{user.name}, {user.age}</ThemedText>
                         <ThemedText>Organizer</ThemedText>
                     </ThemedView>
-                    <ThemedText style={styles.nmbr}>{event.number}{' '}<IconSymbol size={35} name={ick(event.number)} color="#fff" /></ThemedText>
+                    <ThemedText style={styles.nmbr}>{event.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
                 </ThemedView>
                 <ScrollView horizontal style={styles.interestsContainer}>
                     {user.interests.map((item, index) => (

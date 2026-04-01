@@ -12,7 +12,7 @@ export default function RootLayout() {
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <Slot />
             {isAuthenticated ? (
-                <Redirect href="/(tabs)/feed" />
+                <Redirect href="/feed" />
             ) : (
                 <Redirect href="/(auth)" />
             )}
