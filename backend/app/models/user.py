@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
-from typing import Optional
-
+from typing import Optional, TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Column, LargeBinary, Relationship
+
+if TYPE_CHECKING:
+    from app.models.event import Event
+    from app.models.user_preference import UserPreference
 
 
 class User(SQLModel, table=True):
@@ -16,6 +19,6 @@ class User(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc)
     )
 
-    # Relationship to events created by this user
-    # not used for the database, just for Python and the ORM
+    # Relationships
     created_events: list["Event"] = Relationship(back_populates="creator")
+    preferences: list["UserPreference"] = Relationship(back_populates="user")
