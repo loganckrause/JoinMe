@@ -1,10 +1,11 @@
 import { StyleSheet,TouchableOpacity, TouchableWithoutFeedback, Modal,  Animated, Image, Dimensions} from 'react-native';
 import { useEffect, useRef } from 'react';
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuthStore } from '@/store/auth';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SIDEBAR_WIDTH = SCREEN_WIDTH * 0.70;
@@ -41,6 +42,14 @@ function MenuItem({ icon, label, onPress, active }: MenuItemProps) {
 }
 
 export default function Sidebar({ visible, onClose, user }: SidebarProps) {
+
+    const logout = useAuthStore(state => state.logout);
+    const pathname = usePathname();
+    const handleLogout = () => {
+        logout();                       
+        router.replace('/(auth)');       
+    };
+
     const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
 
     useEffect(() => {
@@ -53,7 +62,13 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
 
     const navigate = (route: string) => {
         onClose();
-        setTimeout(() => router.push(route as any));
+
+        // No change if already on this route
+        if (route === pathname) {
+            return;
+        }
+    
+        router.replace(route as any);    
     };
 
     return (
@@ -72,7 +87,7 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
             <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
 
                 <ThemedView style={styles.header}>
-                    <TouchableOpacity onPress={() => navigate('/(tabs)/user-profile')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <TouchableOpacity onPress={() => navigate('/user-profile')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <ThemedView style={styles.userInfo} >
                         {user.photoUri ? (
                             <Image source={{ uri: user.photoUri }} style={styles.avatar} />
@@ -95,12 +110,13 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                 <ThemedView style={styles.divider} />
 
                 {/* Menu items */}
+                <ThemedView style={styles.menuContainer}>
                 <ThemedView style={styles.menu}>
                      <MenuItem
                         icon="safari"
                         label="Feed"
                         active
-                        onPress={() => navigate('/(tabs)/feed')}
+                        onPress={() => navigate('/feed')}
                     />
                     <MenuItem
                         icon="checkmark.circle"
@@ -117,7 +133,20 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                         label="All Events"
                         onPress={() => navigate('/all-events')}
                     />
+                    <MenuItem
+                        icon="plus"
+                        label="Organize New Event"
+                        onPress={() => navigate('')}
+                    />
                 </ThemedView>
+                <ThemedView style={styles.menu}>
+                    <MenuItem
+                        icon="rectangle.portrait.and.arrow.right"
+                        label="Logout"
+                        onPress={handleLogout}
+                    />
+                </ThemedView>
+                 </ThemedView>
             </Animated.View>
         </Modal>
     );
@@ -177,11 +206,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#2a2a2a',
         marginBottom: 12,
     },
-
-    // Menu
     menu: {
         gap: 4,
         backgroundColor: 'transparent',
+
+    },
+    menuContainer: {
+        flex: 1,                       
+        justifyContent: 'space-between',
+        backgroundColor: 'transparent',
+
     },
     menuItem: {
         flexDirection: 'row',
