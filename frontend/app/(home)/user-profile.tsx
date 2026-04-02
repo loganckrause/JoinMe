@@ -1,4 +1,5 @@
-import React from "react";
+import { IconSymbol } from "@/components/ui/icon-symbol.ios";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,16 +9,10 @@ import {
   ScrollView,
 } from "react-native";
 
-import { useAuthStore } from '@/store/auth';
-import { router } from "expo-router";
-
+import Sidebar from "@/components/ui/sidebar";
 export default function UserProfile() {
-  const logout = useAuthStore(state => state.logout);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-        logout();                        // sets isAuthenticated = false
-        router.replace('/(auth)');       
-  };
     // Placeholder user data - later will connect to database
   const user = {
     name: "John Doe",
@@ -31,10 +26,10 @@ export default function UserProfile() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Back Button
-      <TouchableOpacity onPress={() => navigator.goBack()}>
-        <Text style={styles.backArrow}>←</Text>
-      </TouchableOpacity> */}
+      
+    <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
+    </TouchableOpacity>
 
       <Text style={styles.name}>{user.name}</Text>
 
@@ -68,11 +63,11 @@ export default function UserProfile() {
           <Text style={styles.outlineText}>See events</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.logOutBtn} onPress={handleLogout}>
-          <Text style={styles.outlineText}>Log Out</Text>
-        </TouchableOpacity>
-      </View>
+      <Sidebar
+          visible={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          user={user}
+      />
     </ScrollView>
   );
 }
@@ -84,10 +79,8 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingHorizontal: 20,
   },
-  backArrow: {
-    color: "#fff",
-    fontSize: 28,
-    marginBottom: 10,
+  backButton: {
+        padding: 4,
   },
   name: {
     color: "#fff",
@@ -170,4 +163,7 @@ const styles = StyleSheet.create({
   outlineText: {
     color: "#fff",
   },
+  backIcon: {
+        transform: [{ scaleX: -1 }],
+    },
 });

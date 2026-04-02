@@ -34,7 +34,7 @@ export default function LoginScreen() {
         setLoading(true);
         try {
             await login(email, password);
-            router.replace('/(tabs)/feed');
+            router.replace('/feed');
         } catch (error) {
             Alert.alert('Login Failed', error instanceof Error ? error.message : 'An error occurred');
         } finally {

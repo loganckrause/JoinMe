@@ -1,13 +1,19 @@
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { useState } from 'react';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
+import Sidebar from '@/components/ui/sidebar';
+
+const MOCK_USER = {
+    name: "John Doe",
+    // photoUri: "https://randomuser.me/api/portraits/lego/1.jpg"
+}
 
 
 export default function FeedScreen() {
@@ -54,7 +60,7 @@ export default function FeedScreen() {
     const [nextEvent, setNextEvent] = useState(events[1])
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
-    const navigator = useNavigation();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const handleSwipeResult = () => {
         setEvent(nextEvent);
@@ -90,37 +96,38 @@ export default function FeedScreen() {
         };
     })
 
-    const ick = () => {
-        if (event.number == "2") {
-            return "person.2"
-        } else {
-            return "person.3"
-        }
-    }
+    const getIconName = (number: string) => (number === "2" ? "person.2" : "person.3");
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <ThemedView style={styles.header}>
-                <ThemedView style={styles.headerSpacer} />
+            
+            <ThemedView style={styles.topBar}>
+                <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
+                </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
                 <NotificationBell />
+                
             </ThemedView>
             <ThemedView style={styles.container}>
                 <ThemedView style={styles.eventCard}>
                     <Image source={{ uri: nextEvent.image }} style={styles.eventImage} />
                     <ThemedView style={styles.row}>
                         <ThemedText style={styles.text}>{nextEvent.title}</ThemedText>
-                        <ThemedText style={styles.text}>{nextEvent.number}{' '}<IconSymbol size={35} name={ick()} color="#fff" /></ThemedText>
+                        <ThemedText style={styles.text}>{nextEvent.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
                     </ThemedView>
                     <ThemedText style={styles.text2}>{nextEvent.location}</ThemedText>
                 </ThemedView>
                 <GestureDetector gesture={panGesture}>
-                    <TouchableOpacity activeOpacity={0.9} onPress={() => navigator.navigate("event", { event })}>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(event) } })}
+                    >
                         <Animated.View key={event.image} style={[styles.eventCard, animatedStyle]}>
                             <Image source={{ uri: event.image }} style={styles.eventImage} />
                             <ThemedView style={styles.row}>
                                 <ThemedText style={styles.text}>{event.title}</ThemedText>
-                                <ThemedText style={styles.text}>{event.number}{' '}<IconSymbol size={35} name={ick()} color="#fff" /></ThemedText>
+                                <ThemedText style={styles.text}>{event.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
                             </ThemedView>
                             <ThemedText style={styles.text2}>{event.location}</ThemedText>
                         </Animated.View>
@@ -134,7 +141,15 @@ export default function FeedScreen() {
                         <ThemedText style={styles.yesbuttText}>✓</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
+                
+            {/* Sidebar */}
+            <Sidebar
+                visible={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                user={MOCK_USER}
+            />
             </ThemedView>
+            
         </GestureHandlerRootView>
     )
 }
@@ -161,6 +176,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 40,
         backgroundColor: '#0a0a0bff',
+        // fontSize: 50,
+        padding: 30,
+        marginTop: 50,
     },
     eventCard: {
         position: 'absolute',
@@ -227,5 +245,13 @@ const styles = StyleSheet.create({
         color: '#59d386ff',
         padding: 10,
         bottom: -3,
+    },
+    topBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        
     }
 });
