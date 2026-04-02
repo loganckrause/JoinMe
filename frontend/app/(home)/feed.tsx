@@ -16,8 +16,6 @@ const MOCK_USER = {
 }
 
 
-export default function FeedScreen() {
-
     const events = [                 //Placeholder event data
         {
             title: "Rock Climbing",
@@ -56,30 +54,45 @@ export default function FeedScreen() {
         }
     ]
 
-    const [event, setEvent] = useState(events[0])
-    const [nextEvent, setNextEvent] = useState(events[1])
+
+export default function FeedScreen() {
+    // Queue of unseen events. When empty, show the empty state.
+    const [queue, setQueue] = useState(events);
+
+    // Use when fetching from the backend:
+    // const [queue, setQueue] = useState([]);
+    //     useEffect(() => {
+    //         fetch('/api/events').then(r => r.json()).then(setQueue);
+    //     }, []);
+
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const handleSwipeResult = () => {
-        setEvent(nextEvent);
-        setNextEvent(events[Math.floor(Math.random() * events.length)]);
-    }
+    const currentEvent = queue[0] ?? null;
+    const nextEvent = queue[1] ?? null;
+    const isEmpty = queue.length === 0;
+
+    // Removes the top card from the queue
+    const dismissTop = () => {
+        setQueue(prev => prev.slice(1));
+        translateX.value = 0;
+        translateY.value = 0;
+    };
 
     const panGesture = Gesture.Pan()
-        .onUpdate((event) => {
-            translateX.value = event.translationX;
-            translateY.value = event.translationY;
+        .onUpdate((e) => {
+            translateX.value = e.translationX;
+            translateY.value = e.translationY;
         })
         .onEnd(() => {
-            if(translateX.value > 150 || translateX.value < -150) {
-                translateX.value = withSpring(translateX.value > 120 ? 500 : -500, {}, () => {
-                runOnJS(handleSwipeResult)();
-                translateX.value = 0;
-                translateY.value = 0;
-            });
-             } else {
+            if (translateX.value > 150 || translateX.value < -150) {
+                translateX.value = withSpring(
+                    translateX.value > 0 ? 500 : -500,
+                    {},
+                    () => runOnJS(dismissTop)()
+                );
+            } else {
                 translateX.value = withSpring(0);
                 translateY.value = withSpring(0);
             }
@@ -94,92 +107,101 @@ export default function FeedScreen() {
                 { rotate: `${rotate}deg` },
             ],
         };
-    })
-
-    const getIconName = (number: string) => (number === "2" ? "person.2" : "person.3");
+    });
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            
+
             <ThemedView style={styles.topBar}>
                 <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
                 <NotificationBell />
-                
             </ThemedView>
+
             <ThemedView style={styles.container}>
-                <ThemedView style={styles.eventCard}>
-                    <Image source={{ uri: nextEvent.image }} style={styles.eventImage} />
-                    <ThemedView style={styles.row}>
-                        <ThemedText style={styles.text}>{nextEvent.title}</ThemedText>
-                        <ThemedText style={styles.text}>{nextEvent.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
+
+                {isEmpty ? (
+                    /*  Empty state: */
+                    <ThemedView style={styles.emptyState}>
+                        <ThemedText style={styles.emptyTitle}>No new events</ThemedText>
+                        <ThemedText style={styles.emptyTitle}>Come back later</ThemedText>
                     </ThemedView>
-                    <ThemedText style={styles.text2}>{nextEvent.location}</ThemedText>
-                </ThemedView>
-                <GestureDetector gesture={panGesture}>
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(event) } })}
-                    >
-                        <Animated.View key={event.image} style={[styles.eventCard, animatedStyle]}>
-                            <Image source={{ uri: event.image }} style={styles.eventImage} />
-                            <ThemedView style={styles.row}>
-                                <ThemedText style={styles.text}>{event.title}</ThemedText>
-                                <ThemedText style={styles.text}>{event.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
+                ) : (
+                    <>
+                        {/* Ghost card underneath showing the next event */}
+                        {nextEvent && (
+                            <ThemedView style={styles.eventCard}>
+                                <Image source={{ uri: nextEvent.image }} style={styles.eventImage} />
+                                <ThemedView style={styles.row}>
+                                    <ThemedText style={styles.text}>{nextEvent.title}</ThemedText>
+                                    <ThemedText style={styles.text}>{nextEvent.number}{' '}<IconSymbol size={35} name="person.3" color="#fff" /></ThemedText>
+                                </ThemedView>
+                                <ThemedText style={styles.text2}>{nextEvent.location}</ThemedText>
                             </ThemedView>
-                            <ThemedText style={styles.text2}>{event.location}</ThemedText>
-                        </Animated.View>
-                    </TouchableOpacity>
-                </GestureDetector>
-                <ThemedView style={styles.buttrow}>
-                    <TouchableOpacity style={styles.nobutt} onPress={handleSwipeResult}>
-                        <ThemedText style={styles.nobuttText}>X</ThemedText>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.yesbutt} onPress={handleSwipeResult}>
-                        <ThemedText style={styles.yesbuttText}>✓</ThemedText>
-                    </TouchableOpacity>
-                </ThemedView>
-                
-            {/* Sidebar */}
-            <Sidebar
-                visible={sidebarOpen}
-                onClose={() => setSidebarOpen(false)}
-                user={MOCK_USER}
-            />
+                        )}
+
+                        {/* Swipeable top card */}
+                        <GestureDetector gesture={panGesture}>
+                            <TouchableOpacity
+                                activeOpacity={0.9}
+                                onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(currentEvent) } })}
+                            >
+                                <Animated.View key={currentEvent.image} style={[styles.eventCard, animatedStyle]}>
+                                    <Image source={{ uri: currentEvent.image }} style={styles.eventImage} />
+                                    <ThemedView style={styles.row}>
+                                        <ThemedText style={styles.text}>{currentEvent.title}</ThemedText>
+                                        <ThemedText style={styles.text}>{currentEvent.number}{' '}<IconSymbol size={35} name="person.3" color="#fff" /></ThemedText>
+                                    </ThemedView>
+                                    <ThemedText style={styles.text2}>{currentEvent.location}</ThemedText>
+                                </Animated.View>
+                            </TouchableOpacity>
+                        </GestureDetector>
+
+                        {/* Yes / No buttons — only shown when there are events */}
+                        <ThemedView style={styles.buttrow}>
+                            <TouchableOpacity style={styles.nobutt} onPress={dismissTop}>
+                                <ThemedText style={styles.nobuttText}>✕</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.yesbutt} onPress={dismissTop}>
+                                <ThemedText style={styles.yesbuttText}>✓</ThemedText>
+                            </TouchableOpacity>
+                        </ThemedView>
+                    </>
+                )}
+
+                <Sidebar
+                    visible={sidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                    user={MOCK_USER}
+                />
             </ThemedView>
-            
+
         </GestureHandlerRootView>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
     container: {
-        height: '100%',
+        flex: 1,
         alignItems: 'center',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#0a0a0bff',
-        paddingTop: 50,
-        paddingBottom: 30,
-        paddingHorizontal: 20,
-    },
-    headerSpacer: {
-        width: 44,
-        backgroundColor: '#0a0a0bff',
     },
     title: {
         textAlign: 'center',
         fontSize: 40,
-        backgroundColor: '#0a0a0bff',
-        // fontSize: 50,
+        backgroundColor: 'transparent',
         padding: 30,
         marginTop: 50,
     },
+    topBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+    },
+
     eventCard: {
         position: 'absolute',
         borderColor: '#fff',
@@ -188,8 +210,20 @@ const styles = StyleSheet.create({
         width: 375,
         padding: 13,
         height: 480,
-        backgroundColor: '#0a0a0bff',
+        backgroundColor: 'transparent',
         alignSelf: 'center',
+    },
+
+    emptyState: {
+        justifyContent: 'center',
+        gap: 16,
+        borderColor: '#fff',
+        borderWidth: 1,
+        borderRadius: 30,
+        width: 375,
+        height: 480,
+        padding: 13,
+        backgroundColor: 'transparent',
     },
     eventImage: {
         width: 350,
@@ -246,12 +280,12 @@ const styles = StyleSheet.create({
         padding: 10,
         bottom: -3,
     },
-    topBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        
-    }
+
+    emptyTitle: {
+        justifyContent: 'center',
+        fontSize: 24,
+        color: '#fff',
+        textAlign: 'center',
+        fontFamily: 'Inter-Light',
+    },
 });
