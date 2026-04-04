@@ -25,12 +25,12 @@ export default function UserProfile() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      
-    <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-        <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
-    </TouchableOpacity>
-
+    <ScrollView style={{ flex: 1 , paddingHorizontal: 20}}>
+      <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+              <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
+          </TouchableOpacity>
+      </View>
       <Text style={styles.name}>{user.name}</Text>
 
       <Image source={{ uri: user.avatar }} style={styles.avatar} />
@@ -73,12 +73,14 @@ export default function UserProfile() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0b0b0b",
-    paddingTop: 80,
-    paddingHorizontal: 20,
-  },
+  topBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 16,
+        backgroundColor: 'transparent',
+        height: 150,
+    },
   backButton: {
         padding: 4,
   },

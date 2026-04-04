@@ -186,13 +186,14 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: 'transparent',
     },
     title: {
         textAlign: 'center',
         fontSize: 40,
         backgroundColor: 'transparent',
-        padding: 30,
-        marginTop: 50,
+        paddingTop: 40,
     },
     topBar: {
         flexDirection: 'row',
@@ -200,6 +201,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingTop: 16,
+        backgroundColor: 'transparent',
+        height: 150,
     },
 
     eventCard: {
@@ -210,7 +213,7 @@ const styles = StyleSheet.create({
         width: 375,
         padding: 13,
         height: 480,
-        backgroundColor: 'transparent',
+        backgroundColor: '#0f0f0f',
         alignSelf: 'center',
     },
 
@@ -234,22 +237,24 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        backgroundColor: 'transparent',
     },
     text: {
         paddingTop: 20,
         fontSize: 30,
+        backgroundColor: 'transparent',
     },
     text2: {
         fontSize: 20,
+        backgroundColor: 'transparent',
     },
 
     buttrow: {
         flexDirection: 'row',
         gap: 140,
-        top: 420,
         backgroundColor: 'transparent',
-        padding: 100,
-    },
+        paddingBottom: 60,},
+    
     nobutt: {
         borderColor: '#dd3939ff',
         borderWidth: 1,
