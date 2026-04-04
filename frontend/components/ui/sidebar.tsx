@@ -112,31 +112,36 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                 {/* Menu items */}
                 <ThemedView style={styles.menuContainer}>
                 <ThemedView style={styles.menu}>
-                     <MenuItem
+                    <MenuItem
                         icon="safari"
                         label="Feed"
-                        active
+                        active={pathname === '/feed'}
                         onPress={() => navigate('/feed')}
                     />
                     <MenuItem
                         icon="checkmark.circle"
                         label="Accepted Events"
+                        active={pathname === '/accepted-events'}
                         onPress={() => navigate('/accepted-events')}
                     />
                     <MenuItem
                         icon="message"
                         label="Messages"
+                        active={pathname === '/messages'}
                         onPress={() => navigate('/messages')}
                     />
                     <MenuItem
                         icon="calendar"
                         label="All Events"
+                        active={pathname === '/all-events'}
                         onPress={() => navigate('/all-events')}
                     />
                     <MenuItem
                         icon="plus"
                         label="Organize New Event"
-                        onPress={() => navigate('')}
+                        active={pathname === '/organize-event'}
+                        onPress={() => navigate('/organize-event')}
+
                     />
                 </ThemedView>
                 <ThemedView style={styles.menu}>
