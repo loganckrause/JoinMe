@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@/services/config';
 
 export type User = {
     id: number;
@@ -20,8 +21,6 @@ type AuthStore = {
     restoreSession: () => Promise<void>;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
-
 export const useAuthStore = create<AuthStore>((set) => ({
     isAuthenticated: false,
     user: null,
@@ -29,19 +28,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     login: async (email: string, password: string) => {
         try {
+            const loginPayload = new URLSearchParams({
+                username: email.trim(),
+                password,
+            }).toString();
+
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 },
-                body: new URLSearchParams({
-                    username: email,
-                    password: password,
-                }),
+                body: loginPayload,
             });
 
             if (!response.ok) {
-                throw new Error('Login failed');
+                const error = await response.json().catch(() => ({}));
+                const detail =
+                    typeof error.detail === 'string'
+                        ? error.detail
+                        : `Login failed (${response.status})`;
+                throw new Error(detail);
             }
 
             const data = await response.json();
