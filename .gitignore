@@ -91,9 +91,14 @@ metro-cache/
 ios/
 android/
 
+# Local-only Makefile (personal dev shortcuts)
+/Makefile
+
 # Other
 *.jks
 *.p8
 *.keystore
 *.mobileprovision
 *.orig
+
+CLAUDE.md
