@@ -1,6 +1,53 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { API_URL } from '@/services/config';
+
+const FETCH_TIMEOUT_MS = 5000;
+const STORAGE_TIMEOUT_MS = 5000;
+
+async function fetchWithTimeout(input: RequestInfo, init?: RequestInit, timeoutMs = FETCH_TIMEOUT_MS) {
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+        timedOut = true;
+    }, timeoutMs);
+
+    try {
+        const response = await fetch(input, init);
+        if (timedOut) {
+            throw new Error(`Request timeout after ${timeoutMs}ms`);
+        }
+        return response;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function secureStoreSetItem(key: string, value: string) {
+    return Promise.race([
+        SecureStore.setItemAsync(key, value),
+        new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`SecureStore.setItemAsync timeout for ${key}`)), STORAGE_TIMEOUT_MS)
+        ),
+    ]);
+}
+
+async function secureStoreGetItem(key: string) {
+    return Promise.race([
+        SecureStore.getItemAsync(key),
+        new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`SecureStore.getItemAsync timeout for ${key}`)), STORAGE_TIMEOUT_MS)
+        ),
+    ]);
+}
+
+async function secureStoreDeleteItem(key: string) {
+    return Promise.race([
+        SecureStore.deleteItemAsync(key),
+        new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`SecureStore.deleteItemAsync timeout for ${key}`)), STORAGE_TIMEOUT_MS)
+        ),
+    ]);
+}
 
 export type User = {
     id: number;
@@ -28,18 +75,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     login: async (email: string, password: string) => {
         try {
+            console.log('Attempting login with API_URL:', API_URL);
             const loginPayload = new URLSearchParams({
                 username: email.trim(),
                 password,
             }).toString();
 
-            const response = await fetch(`${API_URL}/auth/login`, {
+            const response = await fetchWithTimeout(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 },
                 body: loginPayload,
             });
+            console.log('Login request completed', response.status, response.statusText);
 
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
@@ -52,36 +101,55 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
             const data = await response.json();
             const token = data.access_token;
+            console.log('Login successful, fetching user profile...');
 
             // Fetch user profile
-            const userResponse = await fetch(`${API_URL}/users/me`, {
+            const userResponse = await fetchWithTimeout(`${API_URL}/users/me`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
 
             if (!userResponse.ok) {
-                throw new Error('Failed to fetch user profile');
+                const errorText = await userResponse.text();
+                console.error(`Failed to fetch user profile ${userResponse.status}:`, errorText);
+                throw new Error(`Failed to fetch user profile: ${userResponse.status}`);
             }
 
             const user = await userResponse.json();
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
-
+            console.log('User profile fetched successfully');
+            
+            // Update state first - don't block on storage
             set({
                 isAuthenticated: true,
                 user,
                 token,
             });
+            
+            // Store token and user data securely in background (non-blocking)
+            Promise.allSettled([
+                secureStoreSetItem('joinme_token', token),
+                secureStoreSetItem('joinme_userData', JSON.stringify(user)),
+            ]).then(() => {
+                console.log('SecureStore write completed in background');
+            }).catch((error) => {
+                console.error('SecureStore write error:', error);
+            });
         } catch (error) {
             console.error('Login error:', error);
+            if (error instanceof TypeError || (error instanceof Error && error.message.includes('timeout'))) {
+                const msg = `Cannot reach backend at: ${API_URL}. Please verify: 1) Backend is running, 2) API_URL is correct, 3) Device can reach the server`;
+                console.error(msg);
+                throw new Error(msg);
+            }
             throw error;
         }
     },
 
     register: async (email: string, password: string, username: string) => {
         try {
-            const response = await fetch(`${API_URL}/auth/register`, {
+            console.log('Registering with API URL:', API_URL);
+            const response = await fetchWithTimeout(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,8 +162,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Registration failed');
+                const errorText = await response.text();
+                console.error(`Registration failed with status ${response.status}:`, errorText);
+                try {
+                    const errorData = JSON.parse(errorText);
+                    throw new Error(errorData.detail || 'Registration failed');
+                } catch {
+                    throw new Error(`Registration failed: ${response.status}`);
+                }
             }
 
             const data = await response.json();
@@ -104,23 +178,39 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 name: username,
                 email,
             };
-
-            await AsyncStorage.setItem('user', JSON.stringify(newUser));
+            console.log('Registration successful');
+            
             set({ user: newUser });
+            
+            // Store user data in background (non-blocking)
+            secureStoreSetItem('joinme_userData', JSON.stringify(newUser)).catch((storeError) => {
+                console.error('SecureStore userData write failed:', storeError);
+            });
         } catch (error) {
             console.error('Registration error:', error);
+            if (error instanceof TypeError) {
+                console.error('Network error - likely cannot reach API at:', API_URL);
+                console.error('Make sure EXPO_PUBLIC_API_URL in .env.local is set correctly for your device');
+            }
             throw error;
         }
     },
 
     logout: async () => {
         try {
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('user');
+            // Clear auth state immediately
             set({
                 isAuthenticated: false,
                 user: null,
                 token: null,
+            });
+            
+            // Delete from storage in background (non-blocking)
+            Promise.allSettled([
+                secureStoreDeleteItem('joinme_token'),
+                secureStoreDeleteItem('joinme_userData'),
+            ]).catch((error) => {
+                console.error('SecureStore delete error:', error);
             });
         } catch (error) {
             console.error('Logout error:', error);
@@ -130,8 +220,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     restoreSession: async () => {
         try {
-            const token = await AsyncStorage.getItem('token');
-            const userJson = await AsyncStorage.getItem('user');
+            // Retrieve token and user data
+            const token = await secureStoreGetItem('joinme_token');
+            const userJson = await secureStoreGetItem('joinme_userData');
 
             if (token && userJson) {
                 const user = JSON.parse(userJson);
