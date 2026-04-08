@@ -7,6 +7,12 @@ from fastapi.testclient import TestClient
 # Add the project root to the Python path to allow for absolute imports
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
+
+# Override database URL for testing BEFORE any app imports
+import os
+
+os.environ["DATABASE_URL"] = "sqlite:///./test_joinme.db"
+
 from app.main import app
 from app.core.database import create_db_and_tables
 
@@ -17,7 +23,7 @@ create_db_and_tables()
 client = TestClient(app)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def test_user_token_and_id():
     username = f"testuser_{uuid.uuid4().hex[:8]}"
     password = "Password123!"
@@ -69,6 +75,23 @@ def test_chat_endpoints():
 
 def test_preferences_routes(test_user_token_and_id):
     token = test_user_token_and_id["token"]
+
+    # Create categories in the database first (since they're hardcoded in the GET endpoint)
+    from app.core.database import engine
+    from app.models.category import Category
+    from sqlmodel import Session
+
+    with Session(engine) as session:
+        # Create the categories that the test expects (merge to avoid duplicates)
+        categories = [
+            Category(id=1, name="Sports"),
+            Category(id=2, name="Gaming"),
+            Category(id=3, name="Music"),
+            Category(id=4, name="Art"),
+        ]
+        for category in categories:
+            session.merge(category)
+        session.commit()
 
     # Get preferences (should be empty initially)
     get_resp = client.get(
@@ -182,12 +205,212 @@ def test_swipe_and_user_endpoints(test_user_token_and_id):
     assert get_user_resp.status_code == 200
 
 
+def test_user_ratings_routes(test_user_token_and_id):
+    token = test_user_token_and_id["token"]
+    user_id = test_user_token_and_id["user_id"]
+
+    # Create another test user to rate
+    other_username = f"otheruser_{uuid.uuid4().hex[:8]}"
+    other_password = "Password123!"
+    other_email = f"{other_username}@example.com"
+
+    register_resp = client.post(
+        "/auth/register",
+        json={
+            "username": other_username,
+            "password": other_password,
+            "email": other_email,
+        },
+    )
+    assert register_resp.status_code == 200
+    other_user_id = register_resp.json().get("user_id")
+
+    # Get user ratings (should be empty initially)
+    get_resp = client.get(
+        "/user-ratings/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert isinstance(get_resp.json(), list)
+    assert len(get_resp.json()) == 0
+
+    # Create a user rating
+    post_resp = client.post(
+        "/user-ratings/",
+        json={"ratee_id": other_user_id, "score": 5, "comment": "Great user!"},
+        headers=auth_header(token),
+    )
+    assert post_resp.status_code == 200
+    rating_data = post_resp.json()
+    assert rating_data["rater_id"] == user_id
+    assert rating_data["ratee_id"] == other_user_id
+    assert rating_data["score"] == 5
+    assert rating_data["comment"] == "Great user!"
+    rating_id = rating_data["id"]
+
+    # Get user ratings again (should have one now)
+    get_resp = client.get(
+        "/user-ratings/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert len(get_resp.json()) == 1
+
+    # Get received ratings for the other user
+    login_resp = client.post(
+        "/auth/login",
+        data={"username": other_username, "password": other_password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_resp.status_code == 200
+    other_token = login_resp.json().get("access_token")
+
+    get_received_resp = client.get(
+        "/user-ratings/received",
+        headers=auth_header(other_token),
+    )
+    assert get_received_resp.status_code == 200
+    assert len(get_received_resp.json()) == 1
+
+    # Get specific rating
+    get_specific_resp = client.get(
+        f"/user-ratings/{rating_id}",
+        headers=auth_header(token),
+    )
+    assert get_specific_resp.status_code == 200
+
+    # Update rating
+    put_resp = client.put(
+        f"/user-ratings/{rating_id}",
+        json={"ratee_id": other_user_id, "score": 4, "comment": "Updated rating"},
+        headers=auth_header(token),
+    )
+    assert put_resp.status_code == 200
+    assert put_resp.json()["score"] == 4
+    assert put_resp.json()["comment"] == "Updated rating"
+
+    # Delete rating
+    delete_resp = client.delete(
+        f"/user-ratings/{rating_id}",
+        headers=auth_header(token),
+    )
+    assert delete_resp.status_code == 200
+
+    # Verify rating is deleted
+    get_resp = client.get(
+        "/user-ratings/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert len(get_resp.json()) == 0
+
+
+def test_event_ratings_routes(test_user_token_and_id):
+    token = test_user_token_and_id["token"]
+    user_id = test_user_token_and_id["user_id"]
+
+    # Create a test event first
+    event_resp = client.post(
+        "/events/",
+        json={
+            "title": "Test Event for Rating",
+            "description": "A test event",
+            "event_date": "2026-12-31T20:00:00Z",
+            "max_capacity": 10,
+            "location": "Test Location",
+            "latitude": 40.7128,
+            "longitude": -74.0060,
+            "category_id": 1,
+        },
+        headers=auth_header(token),
+    )
+    assert event_resp.status_code == 200
+    event_id = event_resp.json()["id"]
+
+    # Get event ratings (should be empty initially)
+    get_resp = client.get(
+        "/event-ratings/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert isinstance(get_resp.json(), list)
+    assert len(get_resp.json()) == 0
+
+    # Create an event rating
+    post_resp = client.post(
+        "/event-ratings/",
+        json={"event_id": event_id, "score": 5, "review": "Amazing event!"},
+        headers=auth_header(token),
+    )
+    assert post_resp.status_code == 200
+    rating_data = post_resp.json()
+    assert rating_data["user_id"] == user_id
+    assert rating_data["event_id"] == event_id
+    assert rating_data["score"] == 5
+    assert rating_data["review"] == "Amazing event!"
+    rating_id = rating_data["id"]
+
+    # Get event ratings again (should have one now)
+    get_resp = client.get(
+        "/event-ratings/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert len(get_resp.json()) == 1
+
+    # Get ratings for specific event
+    get_event_ratings_resp = client.get(
+        f"/event-ratings/event/{event_id}",
+        headers=auth_header(token),
+    )
+    assert get_event_ratings_resp.status_code == 200
+    assert len(get_event_ratings_resp.json()) == 1
+
+    # Get specific rating
+    get_specific_resp = client.get(
+        f"/event-ratings/{rating_id}",
+        headers=auth_header(token),
+    )
+    assert get_specific_resp.status_code == 200
+
+    # Update rating
+    put_resp = client.put(
+        f"/event-ratings/{rating_id}",
+        json={"event_id": event_id, "score": 4, "review": "Updated review"},
+        headers=auth_header(token),
+    )
+    assert put_resp.status_code == 200
+    assert put_resp.json()["score"] == 4
+    assert put_resp.json()["review"] == "Updated review"
+
+    # Delete rating
+    delete_resp = client.delete(
+        f"/event-ratings/{rating_id}",
+        headers=auth_header(token),
+    )
+    assert delete_resp.status_code == 200
+
+    # Verify rating is deleted
+    get_resp = client.get(
+        "/event-ratings/",
+        headers=auth_header(token),
+    )
+    assert get_resp.status_code == 200
+    assert len(get_resp.json()) == 0
+
+
 def test_unauthenticated_routes():
     auth_required_endpoints = [
         ("/users/me", "get"),
         ("/events/", "post"),
         ("/events/1", "patch"),
         ("/events/1", "delete"),
+        ("/preferences/", "get"),
+        ("/preferences/", "post"),
+        ("/user-ratings/", "get"),
+        ("/user-ratings/", "post"),
+        ("/event-ratings/", "get"),
+        ("/event-ratings/", "post"),
     ]
     for path, method in auth_required_endpoints:
         response = getattr(client, method)(path)

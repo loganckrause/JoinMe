@@ -6,7 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 
 from app.core.database import create_db_and_tables
-from app.routers import auth, categories, chat, events, notifications, swipes, users, preferences
+from app.routers import (
+    auth,
+    categories,
+    chat,
+    events,
+    notifications,
+    swipes,
+    users,
+    preferences,
+    user_ratings,
+    event_ratings,
+)
 
 
 @asynccontextmanager
@@ -37,6 +48,8 @@ app.include_router(notifications.router)
 app.include_router(swipes.router)
 app.include_router(users.router)
 app.include_router(preferences.router)
+app.include_router(user_ratings.router)
+app.include_router(event_ratings.router)
 
 # https://fastapi.tiangolo.com/tutorial/first-steps/
 
