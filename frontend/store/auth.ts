@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 export type User = {
     id: number;
@@ -22,6 +23,86 @@ type AuthStore = {
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Storage utilities that work on both web and native
+const storage = {
+    async setItem(key: string, value: string) {
+        if (Platform.OS === 'web') {
+            localStorage.setItem(key, value);
+        } else {
+            // On native platforms, use SecureStore
+            try {
+                await SecureStore.setItemAsync(key, value);
+            } catch (error) {
+                console.error('SecureStore setItem error:', error);
+                throw error;
+            }
+        }
+    },
+
+    async getItem(key: string): Promise<string | null> {
+        if (Platform.OS === 'web') {
+            return localStorage.getItem(key);
+        } else {
+            try {
+                return await SecureStore.getItemAsync(key);
+            } catch (error) {
+                console.error('SecureStore getItem error:', error);
+                return null;
+            }
+        }
+    },
+
+    async removeItem(key: string) {
+        if (Platform.OS === 'web') {
+            localStorage.removeItem(key);
+        } else {
+            try {
+                await SecureStore.deleteItemAsync(key);
+            } catch (error) {
+                console.error('SecureStore removeItem error:', error);
+            }
+        }
+    },
+
+    async setUserData(userData: string) {
+        if (Platform.OS === 'web') {
+            localStorage.setItem('user', userData);
+        } else {
+            try {
+                await SecureStore.setItemAsync('user', userData);
+            } catch (error) {
+                console.error('SecureStore setUserData error:', error);
+                throw error;
+            }
+        }
+    },
+
+    async getUserData(): Promise<string | null> {
+        if (Platform.OS === 'web') {
+            return localStorage.getItem('user');
+        } else {
+            try {
+                return await SecureStore.getItemAsync('user');
+            } catch (error) {
+                console.error('SecureStore getUserData error:', error);
+                return null;
+            }
+        }
+    },
+
+    async removeUserData() {
+        if (Platform.OS === 'web') {
+            localStorage.removeItem('user');
+        } else {
+            try {
+                await SecureStore.deleteItemAsync('user');
+            } catch (error) {
+                console.error('SecureStore removeUserData error:', error);
+            }
+        }
+    },
+};
+
 export const useAuthStore = create<AuthStore>((set) => ({
     isAuthenticated: false,
     user: null,
@@ -29,6 +110,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     login: async (email: string, password: string) => {
         try {
+            console.log('Logging in with API URL:', API_URL);
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
@@ -41,11 +123,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
             });
 
             if (!response.ok) {
-                throw new Error('Login failed');
+                const errorText = await response.text();
+                console.error(`Login failed with status ${response.status}:`, errorText);
+                throw new Error(`Login failed: ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
             const token = data.access_token;
+            console.log('Login successful, fetching user profile...');
 
             // Fetch user profile
             const userResponse = await fetch(`${API_URL}/users/me`, {
@@ -55,12 +140,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
             });
 
             if (!userResponse.ok) {
-                throw new Error('Failed to fetch user profile');
+                const errorText = await userResponse.text();
+                console.error(`Failed to fetch user profile ${userResponse.status}:`, errorText);
+                throw new Error(`Failed to fetch user profile: ${userResponse.status}`);
             }
 
             const user = await userResponse.json();
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
+            console.log('User profile fetched successfully');
+            
+            // Store token and user data securely
+            await storage.setItem('token', token);
+            await storage.setUserData(JSON.stringify(user));
 
             set({
                 isAuthenticated: true,
@@ -69,12 +159,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
             });
         } catch (error) {
             console.error('Login error:', error);
+            if (error instanceof TypeError) {
+                console.error('Network error - likely cannot reach API at:', API_URL);
+                console.error('Make sure EXPO_PUBLIC_API_URL in .env.local is set correctly for your device');
+            }
             throw error;
         }
     },
 
     register: async (email: string, password: string, username: string) => {
         try {
+            console.log('Registering with API URL:', API_URL);
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
@@ -88,8 +183,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Registration failed');
+                const errorText = await response.text();
+                console.error(`Registration failed with status ${response.status}:`, errorText);
+                try {
+                    const errorData = JSON.parse(errorText);
+                    throw new Error(errorData.detail || 'Registration failed');
+                } catch {
+                    throw new Error(`Registration failed: ${response.status}`);
+                }
             }
 
             const data = await response.json();
@@ -98,19 +199,28 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 name: username,
                 email,
             };
-
-            await AsyncStorage.setItem('user', JSON.stringify(newUser));
+            console.log('Registration successful');
+            
+            // Store user data
+            await storage.setUserData(JSON.stringify(newUser));
+            
             set({ user: newUser });
         } catch (error) {
             console.error('Registration error:', error);
+            if (error instanceof TypeError) {
+                console.error('Network error - likely cannot reach API at:', API_URL);
+                console.error('Make sure EXPO_PUBLIC_API_URL in .env.local is set correctly for your device');
+            }
             throw error;
         }
     },
 
     logout: async () => {
         try {
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('user');
+            // Remove token and user data
+            await storage.removeItem('token');
+            await storage.removeUserData();
+            
             set({
                 isAuthenticated: false,
                 user: null,
@@ -124,8 +234,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     restoreSession: async () => {
         try {
-            const token = await AsyncStorage.getItem('token');
-            const userJson = await AsyncStorage.getItem('user');
+            // Retrieve token and user data
+            const token = await storage.getItem('token');
+            const userJson = await storage.getUserData();
 
             if (token && userJson) {
                 const user = JSON.parse(userJson);
