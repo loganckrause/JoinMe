@@ -86,6 +86,14 @@ export async function fetchEvents(): Promise<EventCard[]> {
   return events.map(mapBackendEventToCard);
 }
 
+export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> {
+  console.log('Fetching accepted events with token:', token);
+  const events = await apiRequest<BackendEvent[]>('/events/me/events', {
+    token,
+  });
+  return events.map(mapBackendEventToCard);
+}
+
 export function getUserImageUri(user: EventUser | null): string {
   //Placeholder for now
     return EVENT_IMAGE_FALLBACK;
