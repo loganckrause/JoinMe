@@ -7,6 +7,7 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.event import Event
+from app.models.category import Category
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -35,8 +36,18 @@ class EventUpdatePayload(BaseModel):
 
 @router.get("/")
 async def get_event_feed(session: Session = Depends(get_session)):
-    events = session.exec(select(Event)).all()
-    return events
+    rows = session.exec(
+        select(Event, Category.name)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+    ).all()
+
+    result = []
+    for event, category_name in rows:
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        result.append(event_data)
+
+    return result
 
 
 @router.post("/")
