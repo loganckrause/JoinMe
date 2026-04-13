@@ -1,5 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol.ios";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,21 +8,106 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
 import Sidebar from "@/components/ui/sidebar";
+import { useAuthStore } from "@/store/auth";
+import { fetchProfileData, fetchUserById, fetchUserInterestsById } from "@/services/profile";
+import { AppUser, toSidebarUser } from "@/services/user";
 export default function UserProfile() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { userId } = useLocalSearchParams<{ userId?: string | string[] }>();
+  const rawUserId = Array.isArray(userId) ? userId[0] : userId;
+  const parsedUserId = useMemo(() => {
+    if (typeof rawUserId === 'undefined') {
+      return undefined;
+    }
+    if (rawUserId === 'me') {
+    return undefined;
+  }
 
-    // Placeholder user data - later will connect to database
-  const user = {
-    name: "John Doe",
-    age: 26,
-    city: "Philadelphia",
-    interests: ["Exercise", "Sport", "Indoor"],
-    about:
-      "Hey, I'm John! I’m looking for a partner (or a small group) to go climbing with this Saturday. Whether you're a pro or just getting started, come hang out!",
-    avatar: "https://randomuser.me/api/portraits/lego/1.jpg", 
-  };
+    const id = Number(rawUserId);
+    return Number.isFinite(id) ? id : null;
+  }, [rawUserId]);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileUser, setProfileUser] = useState<AppUser | null>(null);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const token = useAuthStore((state) => state.token);
+  const authUser = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async () => {
+      if (parsedUserId === null) {
+        if (mounted) {
+          setLoading(false);
+          setError('Invalid profile id.');
+        }
+        return;
+      }
+
+      if (typeof parsedUserId === 'number') {
+        try {
+          setLoading(true);
+          setError(null);
+          const [userProfile, userInterests] = await Promise.all([
+            fetchUserById(parsedUserId),
+            fetchUserInterestsById(parsedUserId),
+          ]);
+          if (mounted) {
+            setProfileUser(userProfile);
+            setInterests(userInterests);
+          }
+        } catch (loadError) {
+          if (mounted) {
+            setError(loadError instanceof Error ? loadError.message : 'Failed to load profile');
+          }
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+        return;
+      }
+
+      if (!token) {
+        if (mounted) {
+          setLoading(false);
+          setError('No active session. Please log in again.');
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const profile = await fetchProfileData(token);
+        if (mounted) {
+          setUser(profile.user);
+          setProfileUser(profile.user);
+          setInterests(profile.interests);
+        }
+      } catch (loadError) {
+        if (mounted) {
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load profile');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, [parsedUserId, setUser, token]);
 
   return (
     <ScrollView style={{ flex: 1 , paddingHorizontal: 20}}>
@@ -31,20 +116,25 @@ export default function UserProfile() {
               <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
           </TouchableOpacity>
       </View>
-      <Text style={styles.name}>{user.name}</Text>
+      {!loading && error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Image source={{ uri: user.avatar }} style={styles.avatar} />
+      <Text style={styles.name}>{profileUser?.name}</Text>
+
+      <Image source={{ uri: profileUser?.photoUri ?? undefined }} style={styles.avatar} />
 
       <View style={styles.divider} />
 
       <View style={styles.row}>
-        <Text style={styles.location}>📍 {user.city}</Text>
-        <Text style={styles.age}>{user.age}</Text>
+        <Text style={styles.location}>📍 {profileUser?.city ?? 'Unknown City'}</Text>
+        <Text style={styles.age}>{profileUser?.age ?? '-'}</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Interests</Text>
       <View style={styles.interestsContainer}>
-        {user.interests.map((item, index) => (
+        {interests.length === 0 ? (
+          <Text style={styles.about}>No interests selected yet.</Text>
+        ) : null}
+        {interests.map((item, index) => (
           <View key={index} style={styles.tag}>
             <Text style={styles.tagText}>{item}</Text>
           </View>
@@ -52,12 +142,10 @@ export default function UserProfile() {
       </View>
 
       <Text style={styles.sectionTitle}>About me</Text>
-      <Text style={styles.about}>{user.about}</Text>
+  <Text style={styles.about}>{profileUser?.bio || 'No bio added yet.'}</Text>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.outlineBtn}>
-          <Text style={styles.outlineText}>Message</Text>
-        </TouchableOpacity>
+       
 
         <TouchableOpacity style={styles.outlineBtn}>
           <Text style={styles.outlineText}>See events</Text>
@@ -66,7 +154,7 @@ export default function UserProfile() {
       <Sidebar
           visible={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          user={user}
+          user={toSidebarUser(authUser)}
       />
     </ScrollView>
   );
@@ -83,6 +171,18 @@ const styles = StyleSheet.create({
     },
   backButton: {
         padding: 4,
+  },
+  infoText: {
+    color: '#aaa',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#f26d6d',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 10,
   },
   name: {
     color: "#fff",

@@ -1,7 +1,7 @@
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,69 +9,54 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
 import Sidebar from '@/components/ui/sidebar';
-
-const MOCK_USER = {
-    name: "John Doe",
-    // photoUri: "https://randomuser.me/api/portraits/lego/1.jpg"
-}
-
-
-    const events = [                 //Placeholder event data
-        {
-            title: "Rock Climbing",
-            number: "2",
-            location: "Philadelphia",
-            image: "https://plus.unsplash.com/premium_photo-1672280940819-7ddad7c44fe1?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGluZG9vciUyMHJvY2slMjBjbGltYmluZ3xlbnwwfHwwfHx8MA%3D%3D",
-            description: "Looking for a partner to go rock climbing with this Monday!"
-        },
-        {
-            title: "Hiking",
-            number: "6",
-            location: "Hamburg",
-            image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aGlraW5nfGVufDB8fDB8fHww",
-            description: "With the warmer weather it's a perfect time to go hiking and meet some new people!  Open to all experience levels!"
-        },
-        {
-            title: "Pickup-Basketball",
-            number: "8",
-            location: "YMCA",
-            image: "https://plus.unsplash.com/premium_photo-1722686462153-428054d35549?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8aW5kb29yJTIwcGlja3VwJTIwYmFza2V0YmFsbHxlbnwwfHwwfHx8MA%3D%3D",
-            description: "Looking for some people to play basketball this Friday!"
-        },
-        {
-            title: "Skiing",
-            number: "8-10",
-            location: "Liberty Mountain",
-            image: "https://images.unsplash.com/photo-1582048551464-8b1d42010271?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8c2tpaW5nfGVufDB8fDB8fHww",
-            description: "Looking for some people who would like to go on a ski trip to Liberty Mountain this weekend.  I am a proficient skier and am fine with going down Black Diamond courses, though am also happy with beginner to intermediate slopes."
-        },
-        {
-            title: "Book Club",
-            number: "6-7",
-            location: "Charles Library",
-            image: "https://plus.unsplash.com/premium_photo-1706061121923-e2aef3d28939?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGJvb2slMjBjbHVifGVufDB8fDB8fHww",
-            description: "Looking for more members to join our weekly book club!  We meet every Tuesday at 6:30pm.  Snacks and refreshments will be provided."
-        }
-    ]
+import { fetchEvents, EventCard } from '@/services/events';
+import { useAuthStore } from '@/store/auth';
+import { toSidebarUser } from '@/services/user';
 
 
 export default function FeedScreen() {
     // Queue of unseen events. When empty, show the empty state.
-    const [queue, setQueue] = useState(events);
+    const [queue, setQueue] = useState<EventCard[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Use when fetching from the backend:
-    // const [queue, setQueue] = useState([]);
-    //     useEffect(() => {
-    //         fetch('/api/events').then(r => r.json()).then(setQueue);
-    //     }, []);
+    useEffect(() => {
+        let mounted = true;
+
+        const loadEvents = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const events = await fetchEvents();
+                if (mounted) {
+                    setQueue(events);
+                }
+            } catch (loadError) {
+                if (mounted) {
+                    setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
+                }
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadEvents();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const user = useAuthStore((state) => state.user);
 
     const currentEvent = queue[0] ?? null;
     const nextEvent = queue[1] ?? null;
-    const isEmpty = queue.length === 0;
+    const isEmpty = !loading && queue.length === 0;
 
     // Removes the top card from the queue
     const dismissTop = () => {
@@ -122,7 +107,15 @@ export default function FeedScreen() {
 
             <ThemedView style={styles.container}>
 
-                {isEmpty ? (
+                {loading ? (
+                    <ThemedView style={styles.emptyState}>
+                        <ThemedText style={styles.emptyTitle}>Loading events...</ThemedText>
+                    </ThemedView>
+                ) : error ? (
+                    <ThemedView style={styles.emptyState}>
+                        <ThemedText style={styles.emptyTitle}>{error}</ThemedText>
+                    </ThemedView>
+                ) : isEmpty ? (
                     /*  Empty state: */
                     <ThemedView style={styles.emptyState}>
                         <ThemedText style={styles.emptyTitle}>No new events</ThemedText>
@@ -135,8 +128,11 @@ export default function FeedScreen() {
                             <ThemedView style={styles.eventCard}>
                                 <Image source={{ uri: nextEvent.image }} style={styles.eventImage} />
                                 <ThemedView style={styles.row}>
-                                    <ThemedText style={styles.text}>{nextEvent.title}</ThemedText>
-                                    <ThemedText style={styles.text}>{nextEvent.number}{' '}<IconSymbol size={35} name="person.3" color="#fff" /></ThemedText>
+                                    <ThemedText numberOfLines={2} style={styles.eventTitleText}>{nextEvent.title}</ThemedText>
+                                    <ThemedView style={styles.peopleWrap}>
+                                        <ThemedText style={styles.peopleText}>{nextEvent.number}</ThemedText>
+                                        <IconSymbol size={30} name="person.3" color="#fff" />
+                                    </ThemedView>
                                 </ThemedView>
                                 <ThemedText style={styles.text2}>{nextEvent.location}</ThemedText>
                             </ThemedView>
@@ -148,13 +144,16 @@ export default function FeedScreen() {
                                 activeOpacity={0.9}
                                 onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(currentEvent) } })}
                             >
-                                <Animated.View key={currentEvent.image} style={[styles.eventCard, animatedStyle]}>
-                                    <Image source={{ uri: currentEvent.image }} style={styles.eventImage} />
+                                <Animated.View key={currentEvent!.id} style={[styles.eventCard, animatedStyle]}>
+                                    <Image source={{ uri: currentEvent!.image }} style={styles.eventImage} />
                                     <ThemedView style={styles.row}>
-                                        <ThemedText style={styles.text}>{currentEvent.title}</ThemedText>
-                                        <ThemedText style={styles.text}>{currentEvent.number}{' '}<IconSymbol size={35} name="person.3" color="#fff" /></ThemedText>
+                                        <ThemedText numberOfLines={2} style={styles.eventTitleText}>{currentEvent!.title}</ThemedText>
+                                        <ThemedView style={styles.peopleWrap}>
+                                            <ThemedText style={styles.peopleText}>{currentEvent!.number}</ThemedText>
+                                            <IconSymbol size={30} name="person.3" color="#fff" />
+                                        </ThemedView>
                                     </ThemedView>
-                                    <ThemedText style={styles.text2}>{currentEvent.location}</ThemedText>
+                                    <ThemedText style={styles.text2}>{currentEvent!.location}</ThemedText>
                                 </Animated.View>
                             </TouchableOpacity>
                         </GestureDetector>
@@ -174,7 +173,7 @@ export default function FeedScreen() {
                 <Sidebar
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
-                    user={MOCK_USER}
+                    user={toSidebarUser(user)}
                 />
             </ThemedView>
 
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         width: 375,
         padding: 13,
-        height: 480,
+        height: 500,
         backgroundColor: '#0f0f0f',
         alignSelf: 'center',
     },
@@ -224,7 +223,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 30,
         width: 375,
-        height: 480,
+        height: 500,
         padding: 13,
         backgroundColor: 'transparent',
     },
@@ -237,11 +236,29 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
         backgroundColor: 'transparent',
     },
-    text: {
+    eventTitleText: {
         paddingTop: 20,
         fontSize: 30,
+        lineHeight: 34,
+        flex: 1,
+        flexShrink: 1,
+        paddingRight: 12,
+        backgroundColor: 'transparent',
+
+    },
+    peopleWrap: {
+        paddingTop: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        flexShrink: 0,
+        backgroundColor: 'transparent',
+    },
+    peopleText: {
+        fontSize: 24,
         backgroundColor: 'transparent',
     },
     text2: {
