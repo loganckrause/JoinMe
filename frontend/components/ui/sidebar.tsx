@@ -121,8 +121,8 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                     <MenuItem
                         icon="checkmark.circle"
                         label="Accepted Events"
-                        active={pathname === '/accepted-events'}
-                        onPress={() => navigate('/accepted-events')}
+                        active={pathname === '/acceptedevents'}
+                        onPress={() => navigate('/acceptedevents')}
                     />
                     <MenuItem
                         icon="message"
@@ -139,8 +139,8 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                     <MenuItem
                         icon="plus"
                         label="Organize New Event"
-                        active={pathname === '/organize-event'}
-                        onPress={() => navigate('/organize-event')}
+                        active={pathname === '/crt'}
+                        onPress={() => navigate('/crt')}
 
                     />
                 </ThemedView>
