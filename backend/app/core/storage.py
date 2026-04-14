@@ -1,21 +1,26 @@
 import os
 import uuid
 import datetime
-from google.cloud import storage
-from google.auth.transport import requests
-import google.auth
+import shutil
 from fastapi import UploadFile
 from app.core.config import settings
 
 # Initialize the client.
-# In Cloud Run, this automatically authenticates using the service account.
-# Locally, it looks for the GOOGLE_APPLICATION_CREDENTIALS environment variable.
-# We explicitly request the cloud-platform scope so the access token has
-# permission to call the IAM Credentials API for URL signing.
-credentials, project = google.auth.default(
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
-storage_client = storage.Client(credentials=credentials, project=project)
+storage_client = None
+if getattr(settings, "STORAGE_BACKEND", "local") != "local":
+    from google.cloud import storage
+    from google.auth.transport import requests
+    import google.auth
+
+    # In Cloud Run, this automatically authenticates using the service account.
+    # Locally, it looks for the GOOGLE_APPLICATION_CREDENTIALS environment variable.
+    # We explicitly request the cloud-platform scope so the access token has
+    # permission to call the IAM Credentials API for URL signing.
+    credentials, project = google.auth.default(
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    storage_client = storage.Client(credentials=credentials, project=project)
+
 BUCKET_NAME = settings.GCS_BUCKET_NAME
 
 
@@ -23,12 +28,20 @@ def upload_image_to_gcs(file: UploadFile, folder: str = "misc") -> str:
     """
     Uploads a FastAPI UploadFile to Google Cloud Storage and returns the public URL.
     """
-    bucket = storage_client.bucket(BUCKET_NAME)
-
     # Generate a unique filename to prevent collisions
     extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
     unique_filename = f"{folder}/{uuid.uuid4()}.{extension}"
 
+    # Handle local development storage
+    if getattr(settings, "STORAGE_BACKEND", "local") == "local":
+        upload_dir = getattr(settings, "LOCAL_UPLOAD_DIR", "./uploads")
+        file_path = os.path.join(upload_dir, unique_filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb+") as f:
+            shutil.copyfileobj(file.file, f)
+        return unique_filename
+
+    bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(unique_filename)
     blob.upload_from_file(file.file, content_type=file.content_type)
 
@@ -39,6 +52,10 @@ def generate_signed_url(blob_name: str, expiration_minutes: int = 60) -> str:
     """
     Generates a v4 signed URL for temporarily downloading/viewing a private blob.
     """
+    # Return local static path for development
+    if getattr(settings, "STORAGE_BACKEND", "local") == "local":
+        return f"/uploads/{blob_name}"
+
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
 

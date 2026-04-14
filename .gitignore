@@ -97,3 +97,6 @@ android/
 *.keystore
 *.mobileprovision
 *.orig
+
+# Local development uploads
+backend/uploads/
