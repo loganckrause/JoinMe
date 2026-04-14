@@ -2,6 +2,7 @@ import os
 import uuid
 import datetime
 from google.cloud import storage
+from google.auth.transport import requests
 from fastapi import UploadFile
 from app.core.config import settings
 
@@ -35,17 +36,19 @@ def generate_signed_url(blob_name: str, expiration_minutes: int = 60) -> str:
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
 
-    service_account_email = settings.GCS_SERVICE_ACCOUNT_EMAIL
-
-    # Automatically detect the service account email if running on Cloud Run / Compute Engine
-    # This bypasses the need to explicitly set the environment variable.
-    if not service_account_email and hasattr(
-        storage_client._credentials, "service_account_email"
-    ):
-        service_account_email = storage_client._credentials.service_account_email
-
     kwargs = {}
-    if service_account_email:
+    credentials = storage_client._credentials
+
+    # If the current credentials cannot sign payloads locally (e.g. Cloud Run),
+    # we must provide both the service_account_email and an access_token.
+    if credentials and not hasattr(credentials, "sign_bytes"):
+        if not credentials.valid:
+            credentials.refresh(requests.Request())
+        kwargs["access_token"] = credentials.token
+
+        service_account_email = settings.GCS_SERVICE_ACCOUNT_EMAIL
+        if not service_account_email and hasattr(credentials, "service_account_email"):
+            service_account_email = credentials.service_account_email
         kwargs["service_account_email"] = service_account_email
 
     return blob.generate_signed_url(
