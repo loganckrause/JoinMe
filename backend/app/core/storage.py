@@ -34,8 +34,13 @@ def generate_signed_url(blob_name: str, expiration_minutes: int = 60) -> str:
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
 
+    # Retrieve the service account email from environment variables.
+    # Required for Cloud Run / Compute Engine to use the IAM SignBlob API.
+    service_account_email = os.getenv("GCS_SERVICE_ACCOUNT_EMAIL")
+
     return blob.generate_signed_url(
         version="v4",
         expiration=datetime.timedelta(minutes=expiration_minutes),
         method="GET",
+        service_account_email=service_account_email,
     )
