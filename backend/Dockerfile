@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Start the FastAPI app, binding to 0.0.0.0 and the dynamically provided $PORT
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips="*"
