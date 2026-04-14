@@ -35,12 +35,18 @@ def generate_signed_url(blob_name: str, expiration_minutes: int = 60) -> str:
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_name)
 
-    # We only inject the service_account_email parameter if it's set.
-    # If it evaluates to None, we let the library fall back to its default behavior
-    # (which works locally with a JSON key file).
+    service_account_email = settings.GCS_SERVICE_ACCOUNT_EMAIL
+
+    # Automatically detect the service account email if running on Cloud Run / Compute Engine
+    # This bypasses the need to explicitly set the environment variable.
+    if not service_account_email and hasattr(
+        storage_client._credentials, "service_account_email"
+    ):
+        service_account_email = storage_client._credentials.service_account_email
+
     kwargs = {}
-    if settings.GCS_SERVICE_ACCOUNT_EMAIL:
-        kwargs["service_account_email"] = settings.GCS_SERVICE_ACCOUNT_EMAIL
+    if service_account_email:
+        kwargs["service_account_email"] = service_account_email
 
     return blob.generate_signed_url(
         version="v4",
