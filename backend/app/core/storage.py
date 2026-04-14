@@ -3,13 +3,19 @@ import uuid
 import datetime
 from google.cloud import storage
 from google.auth.transport import requests
+import google.auth
 from fastapi import UploadFile
 from app.core.config import settings
 
 # Initialize the client.
 # In Cloud Run, this automatically authenticates using the service account.
 # Locally, it looks for the GOOGLE_APPLICATION_CREDENTIALS environment variable.
-storage_client = storage.Client()
+# We explicitly request the cloud-platform scope so the access token has
+# permission to call the IAM Credentials API for URL signing.
+credentials, project = google.auth.default(
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+storage_client = storage.Client(credentials=credentials, project=project)
 BUCKET_NAME = settings.GCS_BUCKET_NAME
 
 
