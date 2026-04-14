@@ -1,34 +1,77 @@
 import { StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { EventCard, EventUser, fetchEventParticipants, getUserImageUri } from '@/services/events';
 
 export default function EventScreen() {
     const { event: eventParam } = useLocalSearchParams();
-    const event = useMemo(() => JSON.parse(eventParam as string), [eventParam]);
-    
-    const user = {
-        name: "John Doe",
-        age: 26,
-        city: "Philadelphia",
-        interests: ["Exercise", "Sport", "Indoor"],
-        about:
-            "Hey, I'm John! I’m looking for a partner (or a small group) to go climbing with this Saturday. Whether you're a pro or just getting started, come hang out!",
-        avatar: "https://randomuser.me/api/portraits/lego/1.jpg", 
-        participants: [
-            { avatar: "https://randomuser.me/api/portraits/lego/2.jpg" },
-            { avatar: "https://randomuser.me/api/portraits/lego/3.jpg" },
-            { avatar: "https://randomuser.me/api/portraits/lego/4.jpg" },
-            { avatar: "https://randomuser.me/api/portraits/lego/5.jpg" },
-            { avatar: "https://randomuser.me/api/portraits/lego/6.jpg" },
-        ]
+    const event = useMemo(() => {
+        if (!eventParam || typeof eventParam !== 'string') {
+            return null;
+        }
+
+        try {
+            return JSON.parse(eventParam) as EventCard;
+        } catch {
+            return null;
+        }
+    }, [eventParam]);
+
+    const [organizer, setOrganizer] = useState<EventUser | null>(null);
+    const [attendees, setAttendees] = useState<EventUser[]>([]);
+    const [loadingPeople, setLoadingPeople] = useState(true);
+    const [peopleError, setPeopleError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const loadPeople = async () => {
+            if (!event) {
+                if (mounted) {
+                    setLoadingPeople(false);
+                    setPeopleError('Missing event data. Please reopen this event.');
+                }
+                return;
+            }
+
+            try {
+                setLoadingPeople(true);
+                setPeopleError(null);
+                const people = await fetchEventParticipants(event.id, event.creatorId);
+                if (mounted) {
+                    setOrganizer(people.organizer);
+                    setAttendees(people.attendees);
+                }
+            } catch (error) {
+                if (mounted) {
+                    setPeopleError(error instanceof Error ? error.message : 'Failed to load organizer and participants.');
+                }
+            } finally {
+                if (mounted) {
+                    setLoadingPeople(false);
+                }
+            }
+        };
+
+        loadPeople();
+
+        return () => {
+            mounted = false;
+        };
+    }, [event]);
+
+    const navigateToProfile = (userId?: number) => {
+        if (!userId) {
+            return;
+        }
+
+        router.push({ pathname: '/user-profile', params: { userId } });
     };
-
-
 
     return (
         <ParallaxScrollView
@@ -37,7 +80,7 @@ export default function EventScreen() {
             headerImage={
                 <ThemedView style={{ flex: 1 }}>
                     <Image
-                        source={{ uri: event.image }}
+                        source={{ uri: event?.image }}
                         style={{ width: '100%', height: '100%' }}
                     />
                     <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} style={styles.backArrow}>
@@ -47,35 +90,46 @@ export default function EventScreen() {
             }
         >
             <ThemedView style={styles.container}>
-                <ThemedText style={styles.title}>{event.title}</ThemedText>
-                <ThemedText>{event.location}</ThemedText>
+                <ThemedText style={styles.title}>{event?.title ?? 'Event'}</ThemedText>
+                <ThemedText>{event?.location ?? '-'}</ThemedText>
                 <ThemedView style={styles.row}>
-                    <Image source={{uri: user.avatar}} style={styles.pp} />
+                    <TouchableOpacity onPress={() => navigateToProfile(organizer?.id)} disabled={!organizer?.id}>
+                        <Image source={{uri: getUserImageUri(organizer)}} style={styles.pp} />
+                    </TouchableOpacity>
                     <ThemedView style={styles.row2}>
-                        <ThemedText style={styles.title2}>{user.name}, {user.age}</ThemedText>
+                        <ThemedText style={styles.title3}>
+                            {organizer?.name ?? ''}
+                            
+                        </ThemedText>
                         <ThemedText>Organizer</ThemedText>
                     </ThemedView>
-                    <ThemedText style={styles.nmbr}>{event.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
+                    
+                    <ThemedText style={styles.nmbr}>{event?.number}{' '}<IconSymbol size={35} name={"person.3"} color="#fff" /></ThemedText>
                 </ThemedView>
                 <ScrollView horizontal style={styles.interestsContainer}>
-                    {user.interests.map((item, index) => (
+                                        {event?.interests?.map((item, index) => (
                       <ThemedView key={index} style={styles.tag}>
                         <ThemedText style={styles.tagText}>{item}</ThemedText>
                       </ThemedView>
                   ))}
                 </ScrollView>
+                {loadingPeople ? <ThemedText style={styles.infoText}>Loading organizer and participants...</ThemedText> : null}
+                {!loadingPeople && peopleError ? <ThemedText style={styles.errorText}>{peopleError}</ThemedText> : null}
                 <ThemedText style={styles.title2}>Description</ThemedText>
-                <ThemedText style={styles.txt1}>{event.description}</ThemedText>
+                <ThemedText style={styles.txt1}>{event?.description ?? 'No description available.'}</ThemedText>
                 <ThemedText style={styles.title2}>Participants</ThemedText>
                 <ScrollView horizontal style={styles.partContainer}>
-                    {user.participants.map((item, index) => (
-                        <Image key={index} source={{uri: item.avatar}} style={styles.pp2} />
+                    {attendees.map((participant) => (
+                        <TouchableOpacity key={participant.id} onPress={() => navigateToProfile(participant.id)}>
+                            <Image source={{uri: getUserImageUri(participant)}} style={styles.pp2} />
+                        </TouchableOpacity>
                     ))}
+                    {!loadingPeople && attendees.length === 0 ? (
+                        <ThemedText style={styles.infoText}>No participants yet.</ThemedText>
+                    ) : null}
                 </ScrollView>
                 <ThemedView style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.outlineBtn}>
-                        <ThemedText>Message</ThemedText>
-                    </TouchableOpacity>
+                   
                     <TouchableOpacity style={styles.grnbtn}>
                         <ThemedText>Accept</ThemedText>
                     </TouchableOpacity>
@@ -94,46 +148,41 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 30,
         textAlign: 'left',
-        paddingTop: 20,
+        paddingTop: 10,
     },
-    title2: {
+    title3: {
+        // paddingTop: 20,
+        fontSize: 18,
+    },
+     title2: {
+        paddingTop: 20,
         fontSize: 18,
     },
     nmbr: {
         fontSize: 30,
         paddingTop: 5,
-        alignSelf: 'flex-start',
         textAlign: 'right',
         marginRight: 0,
+        flexDirection: 'column',
+        flex: 1,
     },
     row: {
+        marginTop: 20,
         flexDirection: 'row',
-        paddingTop: 30,
+        alignItems: 'center',
     },
     row2: {
         flexDirection: 'column',
         flex: 1,
+
     },
-    interestsContainer: {
-        paddingTop: 20,
-        flexDirection: "row",
-        flexWrap: "wrap",
-        marginBottom: 20,
-    },
-    tag: {
-        borderWidth: 1,
-        borderColor: "#aaa",
-        borderRadius: 10,
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        marginHorizontal: 5,
-    },
-    tagText: {
-        color: "#fff",
+    capacityWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     txt1: {
         paddingTop: 5,
-        paddingBottom: 20,
     },
     buttonRow: {
         flexDirection: "row",
@@ -175,6 +224,14 @@ const styles = StyleSheet.create({
         paddingBottom: 35,
         flexDirection: 'row',
     },
+    infoText: {
+        color: '#aaa',
+        paddingTop: 8,
+    },
+    errorText: {
+        color: '#f26d6d',
+        paddingTop: 8,
+    },
     bA: {
         fontSize: 30,
         lineHeight: 35,
@@ -190,5 +247,20 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 50,
         left: 20,
-    }
+    },
+    interestsContainer: {
+        paddingTop: 20,
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    tag: {
+        borderWidth: 1,
+        borderColor: "#aaa",
+        borderRadius: 10,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+    },
+    tagText: {
+        color: "#fff",
+    },
 });

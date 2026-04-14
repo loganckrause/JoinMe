@@ -8,6 +8,10 @@ from app.core.dependencies import get_current_user
 from app.core.storage import upload_image_to_gcs, generate_signed_url
 from app.models.user import User
 from app.models.event import Event
+from app.models.category import Category
+from app.core.dependencies import get_current_user as get_auth_user
+from app.models.user import User
+from app.models.attendance import Attendance
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -36,8 +40,14 @@ class EventUpdatePayload(BaseModel):
 
 @router.get("/")
 async def get_event_feed(session: Session = Depends(get_session)):
-    events = session.exec(select(Event)).all()
-    for event in events:
+    rows = session.exec(
+        select(Event, Category.name).join(
+            Category, Category.id == Event.category_id, isouter=True
+        )
+    ).all()
+
+    result = []
+    for event, category_name in rows:
         if event.event_picture:
             # Gracefully handle both old bytes format and new string format
             pic_name = (
@@ -47,7 +57,12 @@ async def get_event_feed(session: Session = Depends(get_session)):
             )
             if pic_name:
                 event.event_picture = generate_signed_url(pic_name)
-    return events
+
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        result.append(event_data)
+
+    return result
 
 
 @router.post("/")
@@ -128,3 +143,16 @@ async def upload_event_picture(
 
     signed_url = generate_signed_url(unique_filename)
     return {"message": "Image uploaded successfully", "url": signed_url}
+
+
+@router.get("/me/events")
+async def get_user_events(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    # Query the Attendance join table to find all events the user is attending
+    statement = (
+        select(Event).join(Attendance).where(Attendance.user_id == current_user.id)
+    )
+    events = session.exec(statement).all()
+    return events
