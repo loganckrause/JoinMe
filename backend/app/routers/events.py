@@ -155,4 +155,15 @@ async def get_user_events(
         select(Event).join(Attendance).where(Attendance.user_id == current_user.id)
     )
     events = session.exec(statement).all()
+
+    for event in events:
+        if event.event_picture:
+            pic_name = (
+                event.event_picture.decode("utf-8")
+                if isinstance(event.event_picture, bytes)
+                else event.event_picture
+            )
+            if pic_name:
+                event.event_picture = generate_signed_url(pic_name)
+
     return events

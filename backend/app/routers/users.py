@@ -11,7 +11,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 class UserUpdatePayload(BaseModel):
-    name: str
+    name: str | None = None
+    bio: str | None = None
+    age: int | None = None
 
 
 @router.get("/me")
@@ -33,7 +35,13 @@ async def update_current_user(
     current_user: User = Depends(get_auth_user),
     session: Session = Depends(get_session),
 ):
-    current_user.name = payload.name
+    if payload.name is not None:
+        current_user.name = payload.name
+    if payload.bio is not None:
+        current_user.bio = payload.bio
+    if payload.age is not None:
+        current_user.age = payload.age
+        
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
