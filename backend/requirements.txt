@@ -5,3 +5,5 @@ uvicorn[standard]
 pwdlib[argon2]
 PyJWT
 cryptography
+google-cloud-storage
+python-multipart

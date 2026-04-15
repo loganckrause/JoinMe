@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Column, LargeBinary, Relationship
+from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
     from app.models.event import Event
@@ -14,7 +14,7 @@ class User(SQLModel, table=True):
     password_hash: str
     bio: Optional[str] = Field(default=None)
     age: Optional[int] = Field(default=None, index=True)
-    user_picture: bytes = Field(sa_column=Column(LargeBinary))
+    user_picture: str | None = Field(default=None)
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

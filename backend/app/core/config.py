@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
+    GCS_BUCKET_NAME: str = "joinme-images"
+    GCS_SERVICE_ACCOUNT_EMAIL: str | None = None
 
     model_config = SettingsConfigDict(env_file="../.env")
 
