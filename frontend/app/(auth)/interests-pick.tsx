@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { BackButton } from '@/components/back-button';
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 
 const INTERESTS = [
@@ -47,7 +47,7 @@ export default function InterestsScreen() {
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff' }}
         >
-
+            <BackButton />
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Choose your{'\n'}interests</ThemedText>
 
@@ -96,10 +96,6 @@ export default function InterestsScreen() {
 }
 
 const styles = StyleSheet.create({
-    backButton: {
-        marginBottom: 8,
-        alignSelf: 'flex-start',
-    },
     container: {
         gap: 16,
         marginTop: 10,

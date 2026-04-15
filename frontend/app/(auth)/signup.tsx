@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { BackButton } from '@/components/back-button';
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -37,6 +38,7 @@ export default function SignupScreen() {
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
+            <BackButton />
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Sign-up</ThemedText>
                 <ThemedView style={styles.inputContainer}>
@@ -122,9 +124,6 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-    backButton: {
-        alignSelf: 'flex-start',
-    },
     container: {
         gap: 16,
         marginTop: 10,
