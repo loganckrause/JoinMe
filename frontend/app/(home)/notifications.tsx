@@ -1,49 +1,106 @@
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useCallback } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { router } from 'expo-router';
-import { useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useNotificationStore } from '@/store/notifications';
+import type { Notification } from '@/services/notifications';
 
-interface MockNotification {
-    id: string;
-    content: string;
-    time: string;
-    isRead: boolean;
-    type: string;
+function formatTimeAgo(isoString: string): string {
+    const now = Date.now();
+    const then = new Date(isoString).getTime();
+    const seconds = Math.floor((now - then) / 1000);
+
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    const months = Math.floor(days / 30);
+    return `${months}mo ago`;
 }
 
-const MOCK_NOTIFICATIONS: MockNotification[] = [
-    { id: '1', content: 'Alex is interested in Rock Climbing', time: '2h ago', isRead: false, type: 'swipe' },
-    { id: '2', content: 'Hiking event details updated — new meetup location', time: '5h ago', isRead: false, type: 'event_update' },
-    { id: '3', content: 'Jordan joined your Pickup Basketball event', time: '1d ago', isRead: false, type: 'swipe' },
-    { id: '4', content: "Don't forget to rate last week's Book Club!", time: '2d ago', isRead: true, type: 'rate_reminder' },
-    { id: '5', content: 'Sam is interested in Skiing', time: '3d ago', isRead: true, type: 'swipe' },
-];
-
 export default function NotificationsScreen() {
-    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+    const notifications = useNotificationStore(s => s.notifications);
+    const isLoading = useNotificationStore(s => s.isLoading);
+    const error = useNotificationStore(s => s.error);
+    const fetchNotifications = useNotificationStore(s => s.fetchNotifications);
+    const markRead = useNotificationStore(s => s.markRead);
+    const markAllRead = useNotificationStore(s => s.markAllRead);
 
-    const toggleRead = (id: string) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-        );
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
+
+    const onRefresh = useCallback(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
+
+    const handleTap = (item: Notification) => {
+        if (!item.is_read) {
+            markRead(item.id);
+        }
     };
 
-    const markAllRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    };
-
-    const renderItem = ({ item }: { item: MockNotification }) => (
-        <TouchableOpacity style={styles.notificationRow} onPress={() => toggleRead(item.id)}>
-            <View style={[styles.dot, item.isRead && styles.dotHidden]} />
+    const renderItem = ({ item }: { item: Notification }) => (
+        <TouchableOpacity style={styles.notificationRow} onPress={() => handleTap(item)}>
+            <View style={[styles.dot, item.is_read && styles.dotHidden]} />
             <View style={styles.notificationContent}>
                 <ThemedText style={styles.notificationText}>{item.content}</ThemedText>
-                <ThemedText style={styles.timeText}>{item.time}</ThemedText>
+                <ThemedText style={styles.timeText}>
+                    {formatTimeAgo(item.created_at)}
+                </ThemedText>
             </View>
         </TouchableOpacity>
     );
+
+    if (isLoading && notifications.length === 0) {
+        return (
+            <ThemedView style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <IconSymbol name="chevron.right" size={24} color="#fff" style={styles.backIcon} />
+                    </TouchableOpacity>
+                    <ThemedText type="defaultSemiBold" style={styles.headerTitle}>Notifications</ThemedText>
+                    <View style={{ width: 80 }} />
+                </View>
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#59d386ff" />
+                </View>
+            </ThemedView>
+        );
+    }
+
+    if (error && notifications.length === 0) {
+        return (
+            <ThemedView style={styles.container}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <IconSymbol name="chevron.right" size={24} color="#fff" style={styles.backIcon} />
+                    </TouchableOpacity>
+                    <ThemedText type="defaultSemiBold" style={styles.headerTitle}>Notifications</ThemedText>
+                    <View style={{ width: 80 }} />
+                </View>
+                <View style={styles.centered}>
+                    <ThemedText style={styles.errorText}>Failed to load notifications</ThemedText>
+                    <TouchableOpacity onPress={fetchNotifications} style={styles.retryButton}>
+                        <ThemedText style={styles.retryText}>Retry</ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </ThemedView>
+        );
+    }
 
     return (
         <ThemedView style={styles.container}>
@@ -58,8 +115,15 @@ export default function NotificationsScreen() {
             </View>
             <FlatList
                 data={notifications}
-                keyExtractor={item => item.id}
+                keyExtractor={item => String(item.id)}
                 renderItem={renderItem}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isLoading}
+                        onRefresh={onRefresh}
+                        tintColor="#59d386ff"
+                    />
+                }
                 ListEmptyComponent={
                     <ThemedText style={styles.emptyText}>No notifications yet</ThemedText>
                 }
@@ -134,5 +198,25 @@ const styles = StyleSheet.create({
         color: '#888',
         marginTop: 60,
         fontSize: 16,
+    },
+    centered: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    errorText: {
+        color: '#888',
+        fontSize: 16,
+        marginBottom: 16,
+    },
+    retryButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+        backgroundColor: '#59d386ff',
+    },
+    retryText: {
+        color: '#0b0b0b',
+        fontWeight: '600',
     },
 });
