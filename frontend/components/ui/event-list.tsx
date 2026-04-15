@@ -1,9 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, Pressable } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { IconSymbol } from "./icon-symbol.ios";
 import { ThemedView } from "../themed-view";
+import { router } from "expo-router";
 
 type Event = {
+  id: number;
   title: string;
   number: string;
   location: string;
@@ -21,8 +23,8 @@ export default function EventList({ events }: Props) {
     <View style={styles.container}>
       {events.map((event) => (
           <Pressable
-              key={event.number}
-              onPress={() => console.log(event.title)}
+              key={event.id}
+              onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(event) } })}
               style={({ pressed }) => [
                 styles.eventCard,
                 pressed && { opacity: 0.7 }

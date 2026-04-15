@@ -87,11 +87,11 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
             <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
 
                 <ThemedView style={styles.header}>
-                    <TouchableOpacity onPress={() => navigate('/user-profile')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <ThemedView style={styles.userInfo} >
-                        {user.photoUri ? (
-                            <Image source={{ uri: user.photoUri }} style={styles.avatar} />
-                        ) : (
+                    <TouchableOpacity onPress={() => router.replace({ pathname: '/user-profile', params: { userId: 'me' } })} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                        <ThemedView style={styles.userInfo} >
+                            {user.photoUri ? (
+                                <Image source={{ uri: user.photoUri }} style={styles.avatar} />
+                            ) : (
                             <ThemedView style={styles.avatarPlaceholder}>
                                 <IconSymbol name="person.fill" color="#888" size={24}  />
                             </ThemedView>
@@ -123,12 +123,6 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                         label="Accepted Events"
                         active={pathname === '/acceptedevents'}
                         onPress={() => navigate('/acceptedevents')}
-                    />
-                    <MenuItem
-                        icon="message"
-                        label="Messages"
-                        active={pathname === '/messages'}
-                        onPress={() => navigate('/messages')}
                     />
                     <MenuItem
                         icon="calendar"

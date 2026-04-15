@@ -7,6 +7,10 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.models.event import Event
+from app.models.category import Category
+from app.core.dependencies import get_current_user as get_auth_user
+from app.models.user import User
+from app.models.attendance import Attendance
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -35,8 +39,18 @@ class EventUpdatePayload(BaseModel):
 
 @router.get("/")
 async def get_event_feed(session: Session = Depends(get_session)):
-    events = session.exec(select(Event)).all()
-    return events
+    rows = session.exec(
+        select(Event, Category.name)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+    ).all()
+
+    result = []
+    for event, category_name in rows:
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        result.append(event_data)
+
+    return result
 
 
 @router.post("/")
@@ -93,3 +107,13 @@ async def delete_event(
 async def get_event_attendees(eventId: int, session: Session = Depends(get_session)):
     # Logic to fetch users linked to this event
     return [{"id": 1, "name": "Attendee 1"}]
+
+@router.get("/me/events")
+async def get_user_events(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    # Query the Attendance join table to find all events the user is attending
+    statement = select(Event).join(Attendance).where(Attendance.user_id == current_user.id)
+    events = session.exec(statement).all()
+    return events

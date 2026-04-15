@@ -48,6 +48,31 @@ async def get_user_preferences(
     return result
 
 
+@router.get("/user/{user_id}")
+async def get_preferences_for_user(user_id: int, session: Session = Depends(get_session)):
+    """Get all preferences for a specific user by ID."""
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    preferences = session.exec(
+        select(UserPreference).where(UserPreference.user_id == user_id)
+    ).all()
+
+    result = []
+    for pref in preferences:
+        category = session.get(Category, pref.category_id)
+        result.append(
+            {
+                "user_id": pref.user_id,
+                "category_id": pref.category_id,
+                "category_name": category.name if category else None,
+            }
+        )
+
+    return result
+
+
 @router.post("/")
 async def add_preference(
     payload: PreferenceCreatePayload,

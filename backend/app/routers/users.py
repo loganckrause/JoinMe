@@ -31,10 +31,6 @@ async def update_current_user(
     return current_user
 
 
-@router.get("/me/events")
-async def get_user_events():
-    # TODO: Query an EventAttendee join table to find events for this user
-    return []
 
 
 @router.get("/{userId}")

@@ -1,90 +1,50 @@
 import { IconSymbol } from "@/components/ui/icon-symbol.ios";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { opacity } from "react-native-reanimated/lib/typescript/Colors";
+import { fetchEvents, EventCard } from "@/services/events";
+import { useAuthStore } from "@/store/auth";
+import { toSidebarUser } from "@/services/user";
 
 export default function AllEventsScreen() {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const user = {
-        name: "John Doe",
-        age: 26,
-        city: "Philadelphia",
-        interests: ["Exercise", "Sport", "Indoor"],
-        about:
-        "Hey, I'm John! I’m looking for a partner (or a small group) to go climbing with this Saturday. Whether you're a pro or just getting started, come hang out!",
-        avatar: "https://randomuser.me/api/portraits/lego/1.jpg", 
-    };
+        const [sidebarOpen, setSidebarOpen] = useState(false);
+        const [events, setEvents] = useState<EventCard[]>([]);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState<string | null>(null);
+        const user = useAuthStore((state) => state.user);
 
-    const events = [                 //Placeholder event data
-        {
-            title: "Rock Climbing",
-            number: "2",
-            location: "Philadelphia",
-            image: "https://plus.unsplash.com/premium_photo-1672280940819-7ddad7c44fe1?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGluZG9vciUyMHJvY2slMjBjbGltYmluZ3xlbnwwfHwwfHx8MA%3D%3D",
-            description: "Looking for a partner to go rock climbing with this Monday!"
-        },
-        {
-            title: "Hiking",
-            number: "6",
-            location: "Hamburg",
-            image: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aGlraW5nfGVufDB8fDB8fHww",
-            description: "With the warmer weather it's a perfect time to go hiking and meet some new people!  Open to all experience levels!"
-        },
-        {
-            title: "Pickup-Basketball",
-            number: "8",
-            location: "YMCA",
-            image: "https://plus.unsplash.com/premium_photo-1722686462153-428054d35549?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8aW5kb29yJTIwcGlja3VwJTIwYmFza2V0YmFsbHxlbnwwfHwwfHx8MA%3D%3D",
-            description: "Looking for some people to play basketball this Friday!"
-        },
-        {
-            title: "Skiing",
-            number: "8-10",
-            location: "Liberty Mountain",
-            image: "https://images.unsplash.com/photo-1582048551464-8b1d42010271?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8c2tpaW5nfGVufDB8fDB8fHww",
-            description: "Looking for some people who would like to go on a ski trip to Liberty Mountain this weekend.  I am a proficient skier and am fine with going down Black Diamond courses, though am also happy with beginner to intermediate slopes."
-        },
-        {
-            title: "Book Club",
-            number: "6-7",
-            location: "Charles Library",
-            image: "https://plus.unsplash.com/premium_photo-1706061121923-e2aef3d28939?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGJvb2slMjBjbHVifGVufDB8fDB8fHww",
-            description: "Looking for more members to join our weekly book club!  We meet every Tuesday at 6:30pm.  Snacks and refreshments will be provided."
-        },
-        {
-            title: "Book Club",
-            number: "1-7",
-            location: "Charles Library",
-            image: "https://plus.unsplash.com/premium_photo-1706061121923-e2aef3d28939?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGJvb2slMjBjbHVifGVufDB8fDB8fHww",
-            description: "Looking for more members to join our weekly book club!  We meet every Tuesday at 6:30pm.  Snacks and refreshments will be provided."
-        },
-        {
-            title: "Skiing",
-            number: "2-10",
-            location: "Liberty Mountain",
-            image: "https://images.unsplash.com/photo-1582048551464-8b1d42010271?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8c2tpaW5nfGVufDB8fDB8fHww",
-            description: "Looking for some people who would like to go on a ski trip to Liberty Mountain this weekend.  I am a proficient skier and am fine with going down Black Diamond courses, though am also happy with beginner to intermediate slopes."
-        },
-        {
-            title: "Book Club",
-            number: "3-7",
-            location: "Charles Library",
-            image: "https://plus.unsplash.com/premium_photo-1706061121923-e2aef3d28939?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGJvb2slMjBjbHVifGVufDB8fDB8fHww",
-            description: "Looking for more members to join our weekly book club!  We meet every Tuesday at 6:30pm.  Snacks and refreshments will be provided."
-        },
-        {
-            title: "Book Club",
-            number: "8-7",
-            location: "Charles Library",
-            image: "https://plus.unsplash.com/premium_photo-1706061121923-e2aef3d28939?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTd8fGJvb2slMjBjbHVifGVufDB8fDB8fHww",
-            description: "Looking for more members to join our weekly book club!  We meet every Tuesday at 6:30pm.  Snacks and refreshments will be provided."
-        }
-    ]
+        useEffect(() => {
+            let mounted = true;
+
+            const loadEvents = async () => {
+                try {
+                    setLoading(true);
+                    setError(null);
+                    const fetchedEvents = await fetchEvents();
+                    if (mounted) {
+                        setEvents(fetchedEvents);
+                    }
+                } catch (loadError) {
+                    if (mounted) {
+                        setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
+                    }
+                } finally {
+                    if (mounted) {
+                        setLoading(false);
+                    }
+                }
+            };
+
+            loadEvents();
+
+            return () => {
+                mounted = false;
+            };
+        }, []);
 
   return(
     <ScrollView style={{ flex: 1 }}>
@@ -111,11 +71,14 @@ export default function AllEventsScreen() {
         </ThemedView>
 
         <View style={styles.container}>
+        {loading ? <ThemedText>Loading events...</ThemedText> : null}
+        {!loading && error ? <ThemedText>{error}</ThemedText> : null}
+        {!loading && !error && events.length === 0 ? <ThemedText>No events found.</ThemedText> : null}
             <EventList events={events} />
             <Sidebar
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
-                    user={user}
+            user={toSidebarUser(user)}
             />
          </View>
         </ScrollView> 

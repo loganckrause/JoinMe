@@ -48,20 +48,13 @@ async function secureStoreDeleteItem(key: string) {
         ),
     ]);
 }
-
-export type User = {
-    id: number;
-    name: string;
-    email: string;
-    bio?: string;
-    age?: number;
-    profile_pic?: string;
-};
+import { AppUser, BackendUser, mapBackendUserToAppUser } from '@/services/user';
 
 type AuthStore = {
     isAuthenticated: boolean;
-    user: User | null;
+    user: AppUser | null;
     token: string | null;
+    setUser: (user: AppUser | null) => void;
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string, username: string) => Promise<void>;
     logout: () => Promise<void>;
@@ -72,6 +65,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
     isAuthenticated: false,
     user: null,
     token: null,
+
+    setUser: (user) => set({ user }),
 
     login: async (email: string, password: string) => {
         try {
@@ -116,7 +111,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 throw new Error(`Failed to fetch user profile: ${userResponse.status}`);
             }
 
-            const user = await userResponse.json();
+            const backendUser = (await userResponse.json()) as BackendUser;
+            const user = mapBackendUserToAppUser(backendUser);
             console.log('User profile fetched successfully');
             
             // Update state first - don't block on storage
@@ -173,10 +169,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
             }
 
             const data = await response.json();
-            const newUser = {
+            const newUser: AppUser = {
                 id: data.user_id,
                 name: username,
                 email,
+                photoUri: null,
+                user_picture: null,
             };
             console.log('Registration successful');
             
@@ -225,7 +223,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
             const userJson = await secureStoreGetItem('joinme_userData');
 
             if (token && userJson) {
-                const user = JSON.parse(userJson);
+                const user = JSON.parse(userJson) as AppUser;
                 set({
                     isAuthenticated: true,
                     user,
