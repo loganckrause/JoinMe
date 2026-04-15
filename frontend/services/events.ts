@@ -95,8 +95,7 @@ export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> 
 }
 
 export function getUserImageUri(user: EventUser | null): string {
-  //Placeholder for now
-    return EVENT_IMAGE_FALLBACK;
+    return toImageUri(user?.user_picture);
 }
 
 export async function fetchEventParticipants(eventId: number, creatorId: number): Promise<EventParticipants> {

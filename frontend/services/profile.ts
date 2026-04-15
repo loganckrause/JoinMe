@@ -1,4 +1,5 @@
 import apiRequest from './api';
+import { API_URL } from './config';
 import { BackendUser, mapBackendUserToAppUser, AppUser } from './user';
 
 type BackendPreference = {
@@ -46,4 +47,45 @@ export async function fetchProfileData(token: string): Promise<ProfileData> {
     user,
     interests,
   };
+}
+
+export async function updateProfile(
+  token: string,
+  data: { name?: string; bio?: string; age?: number }
+): Promise<AppUser> {
+  const updatedUser = await apiRequest<BackendUser>('/users/me', {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify(data),
+  });
+  return mapBackendUserToAppUser(updatedUser);
+}
+
+export async function uploadProfilePicture(token: string, imageUri: string): Promise<{ message: string, url: string }> {
+  const formData = new FormData();
+  
+  const filename = imageUri.split('/').pop() || 'profile.jpg';
+  const match = /\.(\w+)$/.exec(filename);
+  const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+  formData.append('file', {
+    uri: imageUri,
+    name: filename,
+    type,
+  } as any);
+
+  const response = await fetch(`${API_URL}/users/me/picture`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || `Upload failed: ${response.statusText}`);
+  }
+
+  return response.json();
 }
