@@ -12,6 +12,8 @@ from app.core.notifications import (
 )
 from app.models.user import User
 from app.models.event import Event
+from app.models.category import Category
+from app.core.dependencies import get_current_user as get_auth_user
 from app.models.attendance import Attendance
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -48,8 +50,18 @@ def _get_attendee_user_ids(session: Session, event_id: int, exclude_user_id: int
 
 @router.get("/")
 async def get_event_feed(session: Session = Depends(get_session)):
-    events = session.exec(select(Event)).all()
-    return events
+    rows = session.exec(
+        select(Event, Category.name)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+    ).all()
+
+    result = []
+    for event, category_name in rows:
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        result.append(event_data)
+
+    return result
 
 
 @router.post("/")
@@ -205,3 +217,13 @@ async def leave_event(
     session.delete(attendance)
     session.commit()
     return {"message": "Left event successfully"}
+
+
+@router.get("/me/events")
+async def get_user_events(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    statement = select(Event).join(Attendance).where(Attendance.user_id == current_user.id)
+    events = session.exec(statement).all()
+    return events
