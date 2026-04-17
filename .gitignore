@@ -79,6 +79,7 @@ joinme.db
 
 # Dependencies
 node_modules/
+yarn.lock
 
 # Expo
 .expo/
