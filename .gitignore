@@ -79,6 +79,7 @@ joinme.db
 
 # Dependencies
 node_modules/
+yarn.lock
 
 # Expo
 .expo/
@@ -91,12 +92,17 @@ metro-cache/
 ios/
 android/
 
+# Local-only Makefile (personal dev shortcuts)
+/Makefile
+
 # Other
 *.jks
 *.p8
 *.keystore
 *.mobileprovision
 *.orig
+
+CLAUDE.md
 
 # Local development uploads
 backend/uploads/

@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.database import get_session
 from app.core.storage import generate_signed_url, upload_image_to_gcs
 from app.models.category import Category
+from app.core.notifications import NotificationType, create_notification
 from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.core.security import get_password_hash, verify_password, create_access_token
@@ -123,7 +124,13 @@ async def register(
 
     access_token = create_access_token(data={"sub": new_user.email})
     signed_picture_url = generate_signed_url(new_user.user_picture) if new_user.user_picture else None
-
+    
+    create_notification(
+        session,
+        new_user.id,
+        "Welcome to JoinMe! Start exploring events near you.",
+        NotificationType.WELCOME,
+    )
     return {
         "message": "User created successfully",
         "user_id": new_user.id,

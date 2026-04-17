@@ -5,12 +5,16 @@ from sqlmodel import Session, select
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.notifications import (
+    NotificationType,
+    create_notification,
+    create_notifications_bulk,
+)
 from app.core.storage import upload_image_to_gcs, generate_signed_url
 from app.models.user import User
 from app.models.event import Event
 from app.models.category import Category
 from app.core.dependencies import get_current_user as get_auth_user
-from app.models.user import User
 from app.models.attendance import Attendance
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -36,6 +40,13 @@ class EventUpdatePayload(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     category_id: int | None = None
+
+
+def _get_attendee_user_ids(session: Session, event_id: int, exclude_user_id: int | None = None) -> list[int]:
+    stmt = select(Attendance.user_id).where(Attendance.event_id == event_id)
+    if exclude_user_id is not None:
+        stmt = stmt.where(Attendance.user_id != exclude_user_id)
+    return list(session.exec(stmt).all())
 
 
 @router.get("/")
@@ -96,6 +107,17 @@ async def update_event(
         setattr(event, key, value)
 
     session.add(event)
+
+    # Notify attendees about the update
+    attendee_ids = _get_attendee_user_ids(session, eventId, exclude_user_id=current_user.id)
+    if attendee_ids:
+        create_notifications_bulk(
+            session,
+            attendee_ids,
+            f'"{event.title}" has been updated — check the new details.',
+            NotificationType.EVENT_UPDATED,
+        )
+
     session.commit()
     session.refresh(event)
     return event
@@ -110,6 +132,26 @@ async def delete_event(
     event = session.get(Event, eventId)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    event_title = event.title
+
+    # Notify attendees before deleting
+    attendee_ids = _get_attendee_user_ids(session, eventId, exclude_user_id=current_user.id)
+    if attendee_ids:
+        create_notifications_bulk(
+            session,
+            attendee_ids,
+            f'"{event_title}" has been cancelled.',
+            NotificationType.EVENT_CANCELLED,
+        )
+
+    # Delete attendance rows, then the event
+    attendances = session.exec(
+        select(Attendance).where(Attendance.event_id == eventId)
+    ).all()
+    for attendance in attendances:
+        session.delete(attendance)
+
     session.delete(event)
     session.commit()
     return {"message": "Event deleted successfully"}
@@ -117,8 +159,77 @@ async def delete_event(
 
 @router.get("/{eventId}/attendees")
 async def get_event_attendees(eventId: int, session: Session = Depends(get_session)):
-    # Logic to fetch users linked to this event
-    return [{"id": 1, "name": "Attendee 1"}]
+    event = session.get(Event, eventId)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    attendances = session.exec(
+        select(Attendance).where(Attendance.event_id == eventId)
+    ).all()
+
+    attendees = []
+    for attendance in attendances:
+        user = session.get(User, attendance.user_id)
+        if user:
+            attendees.append({"id": user.id, "name": user.name})
+    return attendees
+
+
+@router.post("/{eventId}/attend")
+async def attend_event(
+    eventId: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    event = session.get(Event, eventId)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    existing = session.exec(
+        select(Attendance).where(
+            Attendance.event_id == eventId,
+            Attendance.user_id == current_user.id,
+        )
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Already attending this event")
+
+    attendance = Attendance(user_id=current_user.id, event_id=eventId)
+    session.add(attendance)
+
+    # Notify event creator (unless the attendee is the creator)
+    if event.creator_id != current_user.id:
+        create_notification(
+            session,
+            event.creator_id,
+            f'{current_user.name} joined your event "{event.title}".',
+            NotificationType.ATTENDANCE_JOINED,
+        )
+
+    session.commit()
+    session.refresh(attendance)
+    return attendance
+
+
+@router.delete("/{eventId}/attend")
+async def leave_event(
+    eventId: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    attendance = session.exec(
+        select(Attendance).where(
+            Attendance.event_id == eventId,
+            Attendance.user_id == current_user.id,
+        )
+    ).first()
+    if not attendance:
+        raise HTTPException(status_code=404, detail="Not attending this event")
+
+    session.delete(attendance)
+    session.commit()
+    return {"message": "Left event successfully"}
+
 
 
 @router.post("/{eventId}/picture")
@@ -150,7 +261,6 @@ async def get_user_events(
     current_user: User = Depends(get_auth_user),
     session: Session = Depends(get_session),
 ):
-    # Query the Attendance join table to find all events the user is attending
     statement = (
         select(Event).join(Attendance).where(Attendance.user_id == current_user.id)
     )

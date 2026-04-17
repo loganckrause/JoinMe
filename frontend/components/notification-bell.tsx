@@ -1,18 +1,43 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AppState, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemedText } from '@/components/themed-text';
+import { useNotificationStore } from '@/store/notifications';
+
+const POLL_INTERVAL_MS = 30_000;
 
 export function NotificationBell() {
-    const unreadCount = 3;
+    const unreadCount = useNotificationStore(s => s.unreadCount);
+    const fetchUnreadCount = useNotificationStore(s => s.fetchUnreadCount);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        fetchUnreadCount();
+
+        intervalRef.current = setInterval(fetchUnreadCount, POLL_INTERVAL_MS);
+
+        const subscription = AppState.addEventListener('change', (state) => {
+            if (state === 'active') {
+                fetchUnreadCount();
+            }
+        });
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            subscription.remove();
+        };
+    }, [fetchUnreadCount]);
+
+    const displayCount = unreadCount > 99 ? '99+' : unreadCount;
 
     return (
         <TouchableOpacity onPress={() => router.push('/notifications')} >
             <IconSymbol name="bell.fill" size={28} color="#fff" />
             {unreadCount > 0 && (
                 <View style={styles.badge}>
-                    <ThemedText style={styles.badgeText}>{unreadCount}</ThemedText>
+                    <ThemedText style={styles.badgeText}>{displayCount}</ThemedText>
                 </View>
             )}
         </TouchableOpacity>
