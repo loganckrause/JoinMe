@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.database import get_session
+from app.core.notifications import NotificationType, create_notification
 from app.models.user import User
 from app.core.security import get_password_hash, verify_password, create_access_token
 
@@ -34,6 +35,15 @@ async def register(payload: AuthPayload, session: Session = Depends(get_session)
         user_picture=b"",  # Required by your User model
     )
     session.add(new_user)
+    session.flush()
+
+    create_notification(
+        session,
+        new_user.id,
+        "Welcome to JoinMe! Start exploring events near you.",
+        NotificationType.WELCOME,
+    )
+
     session.commit()
     session.refresh(new_user)
     return {"message": "User created successfully", "user_id": new_user.id}
