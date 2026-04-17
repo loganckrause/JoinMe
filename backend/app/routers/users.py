@@ -6,6 +6,7 @@ from app.core.database import get_session
 from app.core.dependencies import get_current_user as get_auth_user
 from app.core.storage import upload_image_to_gcs, generate_signed_url
 from app.models.user import User
+from app.routers.user_ratings import get_user_rating_summary
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,8 +17,15 @@ class UserUpdatePayload(BaseModel):
     age: int | None = None
 
 
+class UserRatingSummaryResponse(BaseModel):
+    rating_score: float
+
+
 @router.get("/me")
-async def read_current_user(current_user: User = Depends(get_auth_user)):
+async def read_current_user(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
     if current_user.user_picture:
         pic_name = (
             current_user.user_picture.decode("utf-8")
@@ -26,7 +34,11 @@ async def read_current_user(current_user: User = Depends(get_auth_user)):
         )
         if pic_name:
             current_user.user_picture = generate_signed_url(pic_name)
-    return current_user
+
+    user_payload = current_user.model_dump()
+    user_payload["rating_score"] = get_user_rating_summary(session, current_user.id)
+
+    return user_payload
 
 
 @router.patch("/me")
@@ -64,7 +76,12 @@ async def get_user(userId: int, session: Session = Depends(get_session)):
         )
         if pic_name:
             user.user_picture = generate_signed_url(pic_name)
-    return user
+
+    user_payload = user.model_dump()
+    user_payload["rating_score"] = get_user_rating_summary(session, user.id)
+
+
+    return user_payload
 
 
 @router.post("/me/picture")

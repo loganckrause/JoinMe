@@ -64,6 +64,24 @@ def register_user(username: str, password: str, email: str):
     )
 
 
+def create_and_login_user(username: str, password: str):
+    email = f"{username}@example.com"
+    register_resp = register_user(username=username, password=password, email=email)
+    assert register_resp.status_code == 200
+
+    login_resp = client.post(
+        "/auth/login",
+        data={"username": email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_resp.status_code == 200
+
+    return {
+        "user_id": register_resp.json().get("user_id"),
+        "token": login_resp.json().get("access_token"),
+    }
+
+
 @pytest.fixture(scope="function")
 def test_user_token_and_id():
     username = f"testuser_{uuid.uuid4().hex[:8]}"
@@ -213,6 +231,8 @@ def test_swipe_and_user_endpoints(test_user_token_and_id):
 
     me_resp = client.get("/users/me", headers=auth_header(token))
     assert me_resp.status_code == 200
+    me_data = me_resp.json()
+    assert me_data["rating_score"] == 5.0
 
     update_resp = client.patch(
         "/users/me",
@@ -227,7 +247,8 @@ def test_swipe_and_user_endpoints(test_user_token_and_id):
 
     get_user_resp = client.get(f"/users/{user_id}")
     assert get_user_resp.status_code == 200
-
+    get_user_data = get_user_resp.json()
+    assert get_user_data["rating_score"] == 5.0
 
 def test_user_ratings_routes(test_user_token_and_id):
     token = test_user_token_and_id["token"]
