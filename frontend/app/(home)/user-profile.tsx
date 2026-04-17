@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import Sidebar from "@/components/ui/sidebar";
 import { useAuthStore } from "@/store/auth";
 import { fetchProfileData, fetchUserById, fetchUserInterestsById } from "@/services/profile";
 import { AppUser, toSidebarUser } from "@/services/user";
 export default function UserProfile() {
+  const router = useRouter();
   const { userId } = useLocalSearchParams<{ userId?: string | string[] }>();
   const rawUserId = Array.isArray(userId) ? userId[0] : userId;
   const parsedUserId = useMemo(() => {
@@ -145,7 +146,14 @@ export default function UserProfile() {
   <Text style={styles.about}>{profileUser?.bio || 'No bio added yet.'}</Text>
 
       <View style={styles.buttonRow}>
-       
+        {authUser?.id === profileUser?.id ? (
+          <TouchableOpacity 
+            style={styles.outlineBtn}
+            onPress={() => router.push('/(home)/edit-profile')}
+          >
+            <Text style={styles.outlineText}>Edit Profile</Text>
+          </TouchableOpacity>
+        ) : null}
 
         <TouchableOpacity style={styles.outlineBtn}>
           <Text style={styles.outlineText}>See events</Text>

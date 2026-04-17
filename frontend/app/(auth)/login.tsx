@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { BackButton } from '@/components/back-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -46,6 +47,7 @@ export default function LoginScreen() {
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
+            <BackButton />
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Login</ThemedText>
                 <ThemedView style={styles.inputContainer}>

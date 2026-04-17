@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Column, LargeBinary, Relationship
+from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -17,7 +17,7 @@ class Event(SQLModel, table=True):
     location: str
     latitude: float
     longitude: float
-    event_picture: bytes = Field(sa_column=Column(LargeBinary))
+    event_picture: str | None = Field(default=None)
     created_at: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
