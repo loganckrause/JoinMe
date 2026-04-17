@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -8,6 +8,7 @@ import { BackButton } from '@/components/back-button';
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { parseAgeFromDob } from '@/services/signup-flow';
 
 
 export default function SignupScreen() {
@@ -34,8 +35,47 @@ export default function SignupScreen() {
         }, [])
     )
 
+    const handleSignupPress = () => {
+        const trimmedFirstName = fname.trim();
+        const trimmedLastName = lname.trim();
+        const trimmedEmail = email.trim().toLowerCase();
+
+        if (!trimmedFirstName || !trimmedLastName || !dob.trim() || !trimmedEmail || !password || !cnfmPassword) {
+            Alert.alert('Missing fields', 'Please complete all fields before continuing.');
+            return;
+        }
+
+        if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+            Alert.alert('Invalid email', 'Please enter a valid email address.');
+            return;
+        }
+
+        if (password !== cnfmPassword) {
+            Alert.alert('Password mismatch', 'Your password and confirmation do not match.');
+            return;
+        }
+
+        const age = parseAgeFromDob(dob.trim());
+        if (!age) {
+            Alert.alert('Invalid date of birth', 'Please enter date of birth in mm/dd/yyyy format.');
+            return;
+        }
+
+        router.push({
+            pathname: '/interests-pick',
+            params: {
+                email: trimmedEmail,
+                password,
+                fullName: `${trimmedFirstName} ${trimmedLastName}`,
+                age: String(age),
+            },
+        });
+    };
+
     return (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ParallaxScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
             <BackButton />
@@ -116,10 +156,11 @@ export default function SignupScreen() {
                     </ThemedView>
                 </ThemedView>
             </ThemedView>
-            <TouchableOpacity onPress={() => router.push('/interests-pick')}>
+            <TouchableOpacity onPress={handleSignupPress}>
                 <ThemedText type="defaultSemiBold" style={styles.button}>Sign-up</ThemedText>
             </TouchableOpacity>
         </ParallaxScrollView>
+        </KeyboardAvoidingView>
     )
 }
 
