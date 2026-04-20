@@ -1,6 +1,6 @@
 import { IconSymbol } from "@/components/ui/icon-symbol.ios";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View, RefreshControl } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
 
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
@@ -14,8 +14,10 @@ export default function AllEventsScreen() {
         const [sidebarOpen, setSidebarOpen] = useState(false);
         const [events, setEvents] = useState<EventCard[]>([]);
         const [loading, setLoading] = useState(true);
+        const [refreshing, setRefreshing] = useState(false);
         const [error, setError] = useState<string | null>(null);
         const user = useAuthStore((state) => state.user);
+        const token = useAuthStore((state) => state.token);
 
         useEffect(() => {
             let mounted = true;
@@ -24,7 +26,7 @@ export default function AllEventsScreen() {
                 try {
                     setLoading(true);
                     setError(null);
-                    const fetchedEvents = await fetchEvents();
+                    const fetchedEvents = await fetchEvents(token ?? undefined);
                     if (mounted) {
                         setEvents(fetchedEvents);
                     }
@@ -44,10 +46,28 @@ export default function AllEventsScreen() {
             return () => {
                 mounted = false;
             };
-        }, []);
+        }, [token]);
+
+        const onRefresh = useCallback(async () => {
+            setRefreshing(true);
+            try {
+                const fetchedEvents = await fetchEvents(token ?? undefined);
+                setEvents(fetchedEvents);
+                setError(null);
+            } catch (loadError) {
+                setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
+            } finally {
+                setRefreshing(false);
+            }
+        }, [token]);
 
   return(
-    <ScrollView style={{ flex: 1 }}>
+    <ScrollView
+        style={{ flex: 1 }}
+        refreshControl={
+            <RefreshControl refreshing={refreshing || loading} onRefresh={onRefresh} tintColor="#59d386ff" />
+        }
+    >
     
         <ThemedView style={styles.topBar}>
     

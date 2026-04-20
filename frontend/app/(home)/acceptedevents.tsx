@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
 import { ThemedView } from "@/components/themed-view";
@@ -12,6 +12,7 @@ export default function AcceptedEventsScreen() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [events, setEvents] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
     const token = useAuthStore((state) => state.token);
@@ -35,8 +36,26 @@ export default function AcceptedEventsScreen() {
         loadEvents();
     }, [token]);
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            const data = await fetchAcceptedEvents(token ?? undefined);
+            setEvents(data);
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to load events");
+        } finally {
+            setRefreshing(false);
+        }
+    }, [token]);
+
     return (
-        <ScrollView style={{ flex: 1, backgroundColor: '#000000ff' }}>
+        <ScrollView
+            style={{ flex: 1, backgroundColor: '#000000ff' }}
+            refreshControl={
+                <RefreshControl refreshing={refreshing || loading} onRefresh={onRefresh} tintColor="#59d386ff" />
+            }
+        >
             <ThemedView style={styles.topBar}>
                 <ThemedView style={styles.side}>
                     <TouchableOpacity onPress={() => setSidebarOpen(true)}>
