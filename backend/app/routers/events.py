@@ -1,7 +1,9 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from sqlmodel import Session, select
+from sqlalchemy import delete as sql_delete
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
@@ -11,13 +13,18 @@ from app.core.notifications import (
     create_notifications_bulk,
 )
 from app.core.storage import upload_image_to_gcs, generate_signed_url
+from app.core.security import verify_token
 from app.models.user import User
 from app.models.event import Event
 from app.models.category import Category
 from app.core.dependencies import get_current_user as get_auth_user
 from app.models.attendance import Attendance
+from app.models.swipe import Swipe
+from app.models.event_chat import EventChat
+from app.models.event_rating import EventRating
 
 router = APIRouter(prefix="/events", tags=["events"])
+optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 class EventPayload(BaseModel):
@@ -49,8 +56,37 @@ def _get_attendee_user_ids(session: Session, event_id: int, exclude_user_id: int
     return list(session.exec(stmt).all())
 
 
+def _get_optional_current_user(
+    token: str | None = Depends(optional_oauth2_scheme),
+    session: Session = Depends(get_session),
+) -> User | None:
+    if not token:
+        return None
+
+    try:
+        payload = verify_token(token)
+    except Exception:
+        return None
+
+    email: str | None = payload.get("sub")
+    if email is None:
+        return None
+
+    return session.exec(select(User).where(User.email == email)).first()
+
+
 @router.get("/")
-async def get_event_feed(session: Session = Depends(get_session)):
+async def get_event_feed(
+    current_user: User = Depends(get_current_user),  session: Session = Depends(get_session)):
+    accepted_event_ids = set(
+        session.exec(
+            select(Swipe.event_id).where(
+                Swipe.user_id == current_user.id,
+                Swipe.is_interested.is_(True),
+            )
+        ).all()
+    )
+
     rows = session.exec(
         select(Event, Category.name).join(
             Category, Category.id == Event.category_id, isouter=True
@@ -60,7 +96,6 @@ async def get_event_feed(session: Session = Depends(get_session)):
     result = []
     for event, category_name in rows:
         if event.event_picture:
-            # Gracefully handle both old bytes format and new string format
             pic_name = (
                 event.event_picture.decode("utf-8")
                 if isinstance(event.event_picture, bytes)
@@ -71,9 +106,55 @@ async def get_event_feed(session: Session = Depends(get_session)):
 
         event_data = event.model_dump()
         event_data["category_name"] = category_name
+        event_data["is_accepted"] = (
+            event.creator_id == current_user.id or event.id in accepted_event_ids
+        )
         result.append(event_data)
 
     return result
+
+
+@router.get("/{eventId}")
+async def get_event(
+    eventId: int,
+    session: Session = Depends(get_session),
+    current_user: User | None = Depends(_get_optional_current_user),
+):
+    row = session.exec(
+        select(Event, Category.name).join(
+            Category, Category.id == Event.category_id, isouter=True
+        ).where(Event.id == eventId)
+    ).first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event, category_name = row
+
+    if event.event_picture:
+        pic_name = (
+            event.event_picture.decode("utf-8")
+            if isinstance(event.event_picture, bytes)
+            else event.event_picture
+        )
+        if pic_name:
+            event.event_picture = generate_signed_url(pic_name)
+
+    event_data = event.model_dump()
+    event_data["category_name"] = category_name
+    event_data["is_accepted"] = (
+        bool(current_user)
+        and (event.creator_id == current_user.id or event.id in {
+            *session.exec(
+                select(Swipe.event_id).where(
+                    Swipe.user_id == current_user.id,
+                    Swipe.is_interested.is_(True),
+                )
+            ).all()
+        })
+    )
+
+    return event_data
 
 
 @router.post("/")
@@ -88,6 +169,19 @@ async def create_new_event(
     session.add(new_event)
     session.commit()
     session.refresh(new_event)
+
+    existing_attendance = session.exec(
+        select(Attendance).where(
+            Attendance.user_id == current_user.id,
+            Attendance.event_id == new_event.id,
+        )
+    ).first()
+    if not existing_attendance:
+        session.add(Attendance(user_id=current_user.id, event_id=new_event.id))
+        session.commit()
+
+    session.refresh(new_event)
+
     return new_event
 
 
@@ -145,12 +239,11 @@ async def delete_event(
             NotificationType.EVENT_CANCELLED,
         )
 
-    # Delete attendance rows, then the event
-    attendances = session.exec(
-        select(Attendance).where(Attendance.event_id == eventId)
-    ).all()
-    for attendance in attendances:
-        session.delete(attendance)
+    # Delete dependent rows first so the parent event can be removed safely.
+    session.exec(sql_delete(EventChat).where(EventChat.event_id == eventId))
+    session.exec(sql_delete(EventRating).where(EventRating.event_id == eventId))
+    session.exec(sql_delete(Swipe).where(Swipe.event_id == eventId))
+    session.exec(sql_delete(Attendance).where(Attendance.event_id == eventId))
 
     session.delete(event)
     session.commit()

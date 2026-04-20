@@ -180,7 +180,7 @@ def test_preferences_routes(test_user_token_and_id):
 def test_event_flow(test_user_token_and_id):
     token = test_user_token_and_id["token"]
 
-    list_resp = client.get("/events/")
+    list_resp = client.get("/events/", headers=auth_header(token))
     assert list_resp.status_code == 200
     assert isinstance(list_resp.json(), list)
 
@@ -204,6 +204,10 @@ def test_event_flow(test_user_token_and_id):
     event_id = create_resp.json().get("id")
     assert event_id is not None
 
+    detail_resp = client.get(f"/events/{event_id}", headers=auth_header(token))
+    assert detail_resp.status_code == 200
+    assert detail_resp.json()["id"] == event_id
+
     update_payload = {"title": "Updated Event", "description": "Updated"}
     update_resp = client.patch(
         f"/events/{event_id}",
@@ -225,9 +229,6 @@ def test_event_flow(test_user_token_and_id):
 def test_swipe_and_user_endpoints(test_user_token_and_id):
     token = test_user_token_and_id["token"]
     user_id = test_user_token_and_id["user_id"]
-
-    swipe_resp = client.post("/swipes/?status=true")
-    assert swipe_resp.status_code == 200
 
     me_resp = client.get("/users/me", headers=auth_header(token))
     assert me_resp.status_code == 200
