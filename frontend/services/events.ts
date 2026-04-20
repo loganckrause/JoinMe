@@ -8,6 +8,7 @@ export type BackendEvent = {
   creator_id: number;
   category_id: number;
   category_name?: string | null;
+  is_accepted?: boolean | null;
   title: string;
   description: string;
   event_date: string;
@@ -22,6 +23,7 @@ export type EventCard = {
   id: number;
   creatorId: number;
   categoryId: number;
+  isAccepted?: boolean;
   title: string;
   description: string;
   location: string;
@@ -78,20 +80,47 @@ export function mapBackendEventToCard(event: BackendEvent): EventCard {
     latitude: event.latitude,
     longitude: event.longitude,
     interests: [categoryLabel],
+    isAccepted: event.is_accepted ?? false,
   };
 }
 
-export async function fetchEvents(): Promise<EventCard[]> {
-  const events = await apiRequest<BackendEvent[]>('/events/');
-  return events.map(mapBackendEventToCard);
-}
-
-export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> {
-  console.log('Fetching accepted events with token:', token);
-  const events = await apiRequest<BackendEvent[]>('/events/me/events', {
+export async function fetchEvents(token?: string): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>('/events/', {
     token,
   });
   return events.map(mapBackendEventToCard);
+}
+
+export async function fetchEvent(eventId: number, token?: string): Promise<EventCard> {
+  const event = await apiRequest<BackendEvent>(`/events/${eventId}`, {
+    token,
+  });
+
+  return mapBackendEventToCard(event);
+}
+
+export async function recordSwipe(eventId: number, status: boolean, token?: string): Promise<void> {
+  await apiRequest(`/swipes/?event_id=${eventId}&status=${status}`, {
+    method: 'POST',
+    token,
+  });
+}
+
+export async function deleteEvent(eventId: number, token?: string): Promise<void> {
+  await apiRequest(`/events/${eventId}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>('/swipes/accepted', {
+    token,
+  });
+  return events.map((event) => ({
+    ...mapBackendEventToCard(event),
+    isAccepted: true,
+  }));
 }
 
 export function getUserImageUri(user: EventUser | null): string {

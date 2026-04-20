@@ -9,7 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
 import Sidebar from '@/components/ui/sidebar';
-import { fetchEvents, EventCard } from '@/services/events';
+import { fetchEvents, EventCard, recordSwipe } from '@/services/events';
 import { useAuthStore } from '@/store/auth';
 import { toSidebarUser } from '@/services/user';
 
@@ -19,6 +19,7 @@ export default function FeedScreen() {
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const token = useAuthStore((state) => state.token);
 
     useEffect(() => {
         let mounted = true;
@@ -27,7 +28,7 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                const events = await fetchEvents();
+                const events = await fetchEvents(token ?? undefined);
                 if (mounted) {
                     setQueue(events);
                 }
@@ -47,7 +48,7 @@ export default function FeedScreen() {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [token]);
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -65,6 +66,21 @@ export default function FeedScreen() {
         translateY.value = 0;
     };
 
+    const handleSwipeDecision = async (status: boolean) => {
+        if (!currentEvent) {
+            return;
+        }
+
+        try {
+            await recordSwipe(currentEvent.id, status, token ?? undefined);
+        } catch (swipeError) {
+            setError(swipeError instanceof Error ? swipeError.message : 'Failed to record swipe');
+            return;
+        }
+
+        dismissTop();
+    };
+
     const panGesture = Gesture.Pan()
         .onUpdate((e) => {
             translateX.value = e.translationX;
@@ -72,10 +88,11 @@ export default function FeedScreen() {
         })
         .onEnd(() => {
             if (translateX.value > 150 || translateX.value < -150) {
+                const shouldAccept = translateX.value > 0;
                 translateX.value = withSpring(
                     translateX.value > 0 ? 500 : -500,
                     {},
-                    () => runOnJS(dismissTop)()
+                    () => runOnJS(handleSwipeDecision)(shouldAccept)
                 );
             } else {
                 translateX.value = withSpring(0);
@@ -160,10 +177,10 @@ export default function FeedScreen() {
 
                         {/* Yes / No buttons — only shown when there are events */}
                         <ThemedView style={styles.buttrow}>
-                            <TouchableOpacity style={styles.nobutt} onPress={dismissTop}>
+                            <TouchableOpacity style={styles.nobutt} onPress={() => handleSwipeDecision(false)}>
                                 <ThemedText style={styles.nobuttText}>✕</ThemedText>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.yesbutt} onPress={dismissTop}>
+                            <TouchableOpacity style={styles.yesbutt} onPress={() => handleSwipeDecision(true)}>
                                 <ThemedText style={styles.yesbuttText}>✓</ThemedText>
                             </TouchableOpacity>
                         </ThemedView>
