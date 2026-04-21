@@ -16,6 +16,11 @@ export default function AllEventsScreen() {
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
         const user = useAuthStore((state) => state.user);
+        const token = useAuthStore((state) => state.token);
+        const [showFilters, setShowFilters] = useState(false);
+        const [radius, setRadius] = useState<number>(50);
+
+        const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
 
         useEffect(() => {
             let mounted = true;
@@ -24,7 +29,7 @@ export default function AllEventsScreen() {
                 try {
                     setLoading(true);
                     setError(null);
-                    const fetchedEvents = await fetchEvents();
+                    const fetchedEvents = await fetchEvents(radius, token);
                     if (mounted) {
                         setEvents(fetchedEvents);
                     }
@@ -44,7 +49,7 @@ export default function AllEventsScreen() {
             return () => {
                 mounted = false;
             };
-        }, []);
+        }, [radius, token]);
 
   return(
     <ScrollView style={{ flex: 1 }}>
@@ -62,13 +67,26 @@ export default function AllEventsScreen() {
             </ThemedText>
 
             <View style={styles.side}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
                     <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
                   
                 </TouchableOpacity>
             </View>
 
         </ThemedView>
+
+    {showFilters && (
+        <View style={styles.filterContainer}>
+            <ThemedText style={styles.filterTitle}>Search Radius (miles):</ThemedText>
+            <View style={styles.radiusOptions}>
+                {RADIUS_OPTIONS.map(r => (
+                    <TouchableOpacity key={r} style={[styles.radiusBtn, radius === r && styles.radiusBtnActive]} onPress={() => setRadius(r)}>
+                        <ThemedText style={[styles.radiusBtnText, radius === r && styles.radiusBtnTextActive]}>{r}</ThemedText>
+                    </TouchableOpacity>
+                ))}
+            </View>
+        </View>
+    )}
 
         <View style={styles.container}>
         {loading ? <ThemedText>Loading events...</ThemedText> : null}
@@ -111,6 +129,39 @@ const styles = StyleSheet.create({
     },
     toggle: {
         opacity: 0.7,
+},
+filterContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+},
+filterTitle: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#fff',
+},
+radiusOptions: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+},
+radiusBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#222',
+},
+radiusBtnActive: {
+    borderColor: '#59d386ff',
+    backgroundColor: '#59d386ff',
+},
+radiusBtnText: {
+    color: '#aaa',
+},
+radiusBtnTextActive: {
+    color: '#000',
+    fontWeight: 'bold',
     },
 
 

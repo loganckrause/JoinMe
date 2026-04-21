@@ -19,6 +19,10 @@ export default function FeedScreen() {
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showFilters, setShowFilters] = useState(false);
+    const [radius, setRadius] = useState<number>(50);
+    const token = useAuthStore((state) => state.token);
+    const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
 
     useEffect(() => {
         let mounted = true;
@@ -27,7 +31,7 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                const events = await fetchEvents();
+                const events = await fetchEvents(radius, token);
                 if (mounted) {
                     setQueue(events);
                 }
@@ -47,7 +51,7 @@ export default function FeedScreen() {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [radius, token]);
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -102,8 +106,26 @@ export default function FeedScreen() {
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
+            <ThemedView style={styles.headerRight}>
+                <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
+                    <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
+                </TouchableOpacity>
                 <NotificationBell />
             </ThemedView>
+            </ThemedView>
+
+        {showFilters && (
+            <ThemedView style={styles.filterContainer}>
+                <ThemedText style={styles.filterTitle}>Search Radius (miles):</ThemedText>
+                <ThemedView style={styles.radiusOptions}>
+                    {RADIUS_OPTIONS.map(r => (
+                        <TouchableOpacity key={r} style={[styles.radiusBtn, radius === r && styles.radiusBtnActive]} onPress={() => setRadius(r)}>
+                            <ThemedText style={[styles.radiusBtnText, radius === r && styles.radiusBtnTextActive]}>{r}</ThemedText>
+                        </TouchableOpacity>
+                    ))}
+                </ThemedView>
+            </ThemedView>
+        )}
 
             <ThemedView style={styles.container}>
 
@@ -309,5 +331,48 @@ const styles = StyleSheet.create({
         color: '#fff',
         textAlign: 'center',
         fontFamily: 'Inter-Light',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+        backgroundColor: 'transparent',
+    },
+    filterContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        backgroundColor: 'transparent',
+        zIndex: 10,
+        width: '100%',
+    },
+    filterTitle: {
+        fontSize: 16,
+        marginBottom: 10,
+        color: '#fff',
+    },
+    radiusOptions: {
+        flexDirection: 'row',
+        gap: 10,
+        flexWrap: 'wrap',
+        backgroundColor: 'transparent',
+    },
+    radiusBtn: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#333',
+        backgroundColor: '#222',
+    },
+    radiusBtnActive: {
+        borderColor: '#59d386ff',
+        backgroundColor: '#59d386ff',
+    },
+    radiusBtnText: {
+        color: '#aaa',
+    },
+    radiusBtnTextActive: {
+        color: '#000',
+        fontWeight: 'bold',
     },
 });

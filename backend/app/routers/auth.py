@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.database import get_session
 from app.models.user import User
+from app.core.location import geocode_address
 from app.core.security import get_password_hash, verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -15,6 +16,7 @@ class AuthPayload(BaseModel):
     username: str
     password: str
     email: str
+    city: str
 
 
 @router.post("/register")
@@ -26,12 +28,18 @@ async def register(payload: AuthPayload, session: Session = Depends(get_session)
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
 
+    # Geocode the user's city
+    lat, lon = await geocode_address(payload.city)
+
     # Create new user
     new_user = User(
         name=payload.username,
         password_hash=get_password_hash(payload.password),
         email=payload.email,
-        user_picture=b"",  # Required by your User model
+        city=payload.city,
+        latitude=lat,
+        longitude=lon,
+        user_picture=b"",  # Required by User model
     )
     session.add(new_user)
     session.commit()

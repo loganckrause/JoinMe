@@ -14,6 +14,9 @@ class User(SQLModel, table=True):
     password_hash: str
     bio: Optional[str] = Field(default=None)
     age: Optional[int] = Field(default=None, index=True)
+    city: str
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     user_picture: str | None = Field(default=None)
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc)

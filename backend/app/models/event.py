@@ -14,9 +14,12 @@ class Event(SQLModel, table=True):
     description: str
     event_date: datetime
     max_capacity: int
-    location: str
-    latitude: float
-    longitude: float
+    street: str
+    city: str
+    state: str
+    zip: str
+    latitude: float | None = Field(default=None)
+    longitude: float | None = Field(default=None)
     event_picture: str | None = Field(default=None)
     created_at: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc)

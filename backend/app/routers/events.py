@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
 from app.core.storage import upload_image_to_gcs, generate_signed_url
+from app.core.location import geocode_address, haversine_distance
 from app.models.user import User
 from app.models.event import Event
 from app.models.category import Category
@@ -21,9 +22,10 @@ class EventPayload(BaseModel):
     description: str
     event_date: datetime
     max_capacity: int
-    location: str
-    latitude: float
-    longitude: float
+    street: str
+    city: str
+    state: str
+    zip: str
     category_id: int
 
 
@@ -32,14 +34,19 @@ class EventUpdatePayload(BaseModel):
     description: str | None = None
     event_date: datetime | None = None
     max_capacity: int | None = None
-    location: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
+    street: str | None = None
+    city: str | None = None
+    state: str | None = None
+    zip: str | None = None
     category_id: int | None = None
 
 
 @router.get("/")
-async def get_event_feed(session: Session = Depends(get_session)):
+async def get_event_feed(
+    radius: float = 50.0,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
     rows = session.exec(
         select(Event, Category.name).join(
             Category, Category.id == Event.category_id, isouter=True
@@ -48,6 +55,22 @@ async def get_event_feed(session: Session = Depends(get_session)):
 
     result = []
     for event, category_name in rows:
+        dist = None
+        if (
+            current_user.latitude is not None
+            and current_user.longitude is not None
+            and event.latitude is not None
+            and event.longitude is not None
+        ):
+            dist = haversine_distance(
+                current_user.latitude,
+                current_user.longitude,
+                event.latitude,
+                event.longitude,
+            )
+            if dist > radius:
+                continue
+
         if event.event_picture:
             # Gracefully handle both old bytes format and new string format
             pic_name = (
@@ -60,6 +83,7 @@ async def get_event_feed(session: Session = Depends(get_session)):
 
         event_data = event.model_dump()
         event_data["category_name"] = category_name
+        event_data["distance"] = round(dist, 1) if dist is not None else None
         result.append(event_data)
 
     return result
@@ -71,8 +95,15 @@ async def create_new_event(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
+    full_address = f"{payload.street}, {payload.city}, {payload.state} {payload.zip}"
+    lat, lon = await geocode_address(full_address)
+
     new_event = Event(
-        **payload.model_dump(), creator_id=current_user.id, event_picture=None
+        **payload.model_dump(),
+        creator_id=current_user.id,
+        event_picture=None,
+        latitude=lat,
+        longitude=lon,
     )
     session.add(new_event)
     session.commit()
@@ -90,6 +121,19 @@ async def update_event(
     event = session.get(Event, eventId)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    if any(
+        x is not None
+        for x in [payload.street, payload.city, payload.state, payload.zip]
+    ):
+        n_street = payload.street if payload.street is not None else event.street
+        n_city = payload.city if payload.city is not None else event.city
+        n_state = payload.state if payload.state is not None else event.state
+        n_zip = payload.zip if payload.zip is not None else event.zip
+        new_address = f"{n_street}, {n_city}, {n_state} {n_zip}"
+        lat, lon = await geocode_address(new_address)
+        event.latitude = lat
+        event.longitude = lon
 
     event_data = payload.model_dump(exclude_unset=True)
     for key, value in event_data.items():

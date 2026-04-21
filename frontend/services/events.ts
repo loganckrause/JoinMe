@@ -81,8 +81,10 @@ export function mapBackendEventToCard(event: BackendEvent): EventCard {
   };
 }
 
-export async function fetchEvents(): Promise<EventCard[]> {
-  const events = await apiRequest<BackendEvent[]>('/events/');
+export async function fetchEvents(radius: number, token: string | null): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>(`/events/?radius=${radius}`, {
+    token,
+  });
   return events.map(mapBackendEventToCard);
 }
 
