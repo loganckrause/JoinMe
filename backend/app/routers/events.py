@@ -50,12 +50,26 @@ def _get_attendee_user_ids(session: Session, event_id: int, exclude_user_id: int
 
 
 @router.get("/")
-async def get_event_feed(session: Session = Depends(get_session)):
-    rows = session.exec(
-        select(Event, Category.name).join(
-            Category, Category.id == Event.category_id, isouter=True
-        )
-    ).all()
+async def get_event_feed(
+    session: Session = Depends(get_session),
+    category_id: int | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    location: str | None = None,
+):
+    stmt = select(Event, Category.name).join(
+        Category, Category.id == Event.category_id, isouter=True
+    )
+    if category_id is not None:
+        stmt = stmt.where(Event.category_id == category_id)
+    if date_from is not None:
+        stmt = stmt.where(Event.event_date >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(Event.event_date <= date_to)
+    if location:
+        stmt = stmt.where(Event.location.ilike(f"%{location}%"))
+
+    rows = session.exec(stmt).all()
 
     result = []
     for event, category_name in rows:

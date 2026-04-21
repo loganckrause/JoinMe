@@ -81,8 +81,21 @@ export function mapBackendEventToCard(event: BackendEvent): EventCard {
   };
 }
 
-export async function fetchEvents(): Promise<EventCard[]> {
-  const events = await apiRequest<BackendEvent[]>('/events/');
+export type EventFilters = {
+  categoryId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  location?: string;
+};
+
+export async function fetchEvents(filters: EventFilters = {}): Promise<EventCard[]> {
+  const params = new URLSearchParams();
+  if (filters.categoryId != null) params.set('category_id', String(filters.categoryId));
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom);
+  if (filters.dateTo) params.set('date_to', filters.dateTo);
+  if (filters.location) params.set('location', filters.location);
+  const qs = params.toString();
+  const events = await apiRequest<BackendEvent[]>(`/events/${qs ? `?${qs}` : ''}`);
   return events.map(mapBackendEventToCard);
 }
 

@@ -4,18 +4,27 @@ import React, { useEffect, useState } from "react";
 
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
+import FilterModal from "@/components/ui/filter-modal";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { fetchEvents, EventCard } from "@/services/events";
+import { fetchEvents, EventCard, EventFilters } from "@/services/events";
 import { useAuthStore } from "@/store/auth";
 import { toSidebarUser } from "@/services/user";
 
 export default function AllEventsScreen() {
         const [sidebarOpen, setSidebarOpen] = useState(false);
+        const [filterModalOpen, setFilterModalOpen] = useState(false);
+        const [filters, setFilters] = useState<EventFilters>({});
         const [events, setEvents] = useState<EventCard[]>([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
         const user = useAuthStore((state) => state.user);
+
+        const hasActiveFilters =
+            filters.categoryId != null ||
+            !!filters.dateFrom ||
+            !!filters.dateTo ||
+            !!filters.location;
 
         useEffect(() => {
             let mounted = true;
@@ -24,7 +33,7 @@ export default function AllEventsScreen() {
                 try {
                     setLoading(true);
                     setError(null);
-                    const fetchedEvents = await fetchEvents();
+                    const fetchedEvents = await fetchEvents(filters);
                     if (mounted) {
                         setEvents(fetchedEvents);
                     }
@@ -44,7 +53,7 @@ export default function AllEventsScreen() {
             return () => {
                 mounted = false;
             };
-        }, []);
+        }, [filters]);
 
   return(
     <ScrollView style={{ flex: 1 }}>
@@ -62,9 +71,9 @@ export default function AllEventsScreen() {
             </ThemedText>
 
             <View style={styles.side}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
                     <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
-                  
+                    {hasActiveFilters && <View style={styles.filterDot} />}
                 </TouchableOpacity>
             </View>
 
@@ -80,10 +89,16 @@ export default function AllEventsScreen() {
                     onClose={() => setSidebarOpen(false)}
             user={toSidebarUser(user)}
             />
+            <FilterModal
+                visible={filterModalOpen}
+                onClose={() => setFilterModalOpen(false)}
+                initial={filters}
+                onApply={setFilters}
+            />
          </View>
-        </ScrollView> 
+        </ScrollView>
         );
-}   
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -105,12 +120,21 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     side: {
-        width: 40, 
+        width: 40,
         alignItems: 'center',
         backgroundColor: 'transparent',
     },
     toggle: {
         opacity: 0.7,
+    },
+    filterDot: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#59d386ff',
     },
 
 
