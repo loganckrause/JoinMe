@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
@@ -10,6 +10,16 @@ from app.models.user_rating import UserRating
 
 router = APIRouter(prefix="/user-ratings", tags=["user-ratings"])
 
+
+def get_user_rating_summary(session: Session, user_id: int) -> float:
+    avg_score = session.exec(
+        select(func.avg(UserRating.score)).where(UserRating.ratee_id == user_id)
+    ).first()
+
+    if avg_score is None:
+        return 5.0
+
+    return round(float(avg_score), 1)
 
 class UserRatingCreatePayload(BaseModel):
     ratee_id: int
