@@ -1,15 +1,20 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "JoinMe Temple",
+    "slug": "joinme",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "joinme",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.joinme",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
@@ -38,11 +43,20 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-notifications",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0744a90e-3125-48a2-9350-299cfe08a147"
+      }
+    },
+    "owner": "kp007"
   }
 }
