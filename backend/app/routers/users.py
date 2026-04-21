@@ -23,6 +23,10 @@ class UserRatingSummaryResponse(BaseModel):
     rating_score: float
 
 
+class UserRatingSummaryResponse(BaseModel):
+    rating_score: float
+
+
 @router.get("/me")
 async def read_current_user(
     current_user: User = Depends(get_auth_user),
