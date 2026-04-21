@@ -1,5 +1,7 @@
 import sys
 import uuid
+import io
+import json
 from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +17,9 @@ os.environ["DATABASE_URL"] = "sqlite:///./test_joinme.db"
 
 from app.main import app
 from app.core.database import create_db_and_tables
+from app.core.database import engine
+from app.models.category import Category
+from sqlmodel import Session, select
 
 # Ensure DB schema exists before tests run
 create_db_and_tables()
@@ -23,23 +28,75 @@ create_db_and_tables()
 client = TestClient(app)
 
 
+def ensure_categories_exist():
+    with Session(engine) as session:
+        existing_categories = session.exec(select(Category)).all()
+        if existing_categories:
+            return
+
+        categories = [
+            Category(name="Sports"),
+            Category(name="Gaming"),
+            Category(name="Music"),
+            Category(name="Fitness"),
+            Category(name="Art"),
+        ]
+        for category in categories:
+            session.add(category)
+        session.commit()
+
+
+def register_user(username: str, password: str, email: str):
+    ensure_categories_exist()
+    return client.post(
+        "/auth/register",
+        data={
+            "email": email,
+            "password": password,
+            "full_name": username,
+            "age": "24",
+            "bio": "Test bio",
+            "category_ids": json.dumps([4, 5]),
+        },
+        files={
+            "profile_picture": ("avatar.jpg", io.BytesIO(b"fake-image"), "image/jpeg")
+        },
+    )
+
+
+def create_and_login_user(username: str, password: str):
+    email = f"{username}@example.com"
+    register_resp = register_user(username=username, password=password, email=email)
+    assert register_resp.status_code == 200
+
+    login_resp = client.post(
+        "/auth/login",
+        data={"username": email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login_resp.status_code == 200
+
+    return {
+        "user_id": register_resp.json().get("user_id"),
+        "token": login_resp.json().get("access_token"),
+    }
+
+
 @pytest.fixture(scope="function")
 def test_user_token_and_id():
     username = f"testuser_{uuid.uuid4().hex[:8]}"
     password = "Password123!"
     email = f"{username}@example.com"
 
-    register_resp = client.post(
-        "/auth/register",
-        json={"username": username, "password": password, "email": email},
-    )
+    register_resp = register_user(username=username, password=password, email=email)
     assert register_resp.status_code == 200
     user_id = register_resp.json().get("user_id")
     assert user_id is not None
+    assert register_resp.json().get("access_token") is not None
 
     login_resp = client.post(
         "/auth/login",
-        data={"username": username, "password": password},
+        data={"username": email, "password": password},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert login_resp.status_code == 200
@@ -76,22 +133,7 @@ def test_chat_endpoints():
 def test_preferences_routes(test_user_token_and_id):
     token = test_user_token_and_id["token"]
 
-    # Create categories in the database first (since they're hardcoded in the GET endpoint)
-    from app.core.database import engine
-    from app.models.category import Category
-    from sqlmodel import Session
-
-    with Session(engine) as session:
-        # Create the categories that the test expects (merge to avoid duplicates)
-        categories = [
-            Category(id=1, name="Sports"),
-            Category(id=2, name="Gaming"),
-            Category(id=3, name="Music"),
-            Category(id=4, name="Art"),
-        ]
-        for category in categories:
-            session.merge(category)
-        session.commit()
+    ensure_categories_exist()
 
     # Get preferences (should be empty initially)
     get_resp = client.get(
@@ -117,7 +159,7 @@ def test_preferences_routes(test_user_token_and_id):
         headers=auth_header(token),
     )
     assert bulk_post_resp.status_code == 200
-    assert bulk_post_resp.json()["added_count"] == 3
+    assert bulk_post_resp.json()["added_count"] == 2
 
     # Get all preferences for the current user
     get_all_resp = client.get(
@@ -125,7 +167,7 @@ def test_preferences_routes(test_user_token_and_id):
         headers=auth_header(token),
     )
     assert get_all_resp.status_code == 200
-    assert len(get_all_resp.json()) == 4  # 1 + 3 from bulk
+    assert len(get_all_resp.json()) == 5  # 2 from signup + 1 + 2 from bulk
 
     # Delete a specific preference
     delete_resp = client.delete(
@@ -189,6 +231,8 @@ def test_swipe_and_user_endpoints(test_user_token_and_id):
 
     me_resp = client.get("/users/me", headers=auth_header(token))
     assert me_resp.status_code == 200
+    me_data = me_resp.json()
+    assert me_data["rating_score"] == 5.0
 
     update_resp = client.patch(
         "/users/me",
@@ -197,13 +241,14 @@ def test_swipe_and_user_endpoints(test_user_token_and_id):
     )
     assert update_resp.status_code == 200
 
-    user_events_resp = client.get("/users/me/events", headers=auth_header(token))
+    user_events_resp = client.get("/events/me/events", headers=auth_header(token))
     assert user_events_resp.status_code == 200
     assert user_events_resp.json() == []
 
     get_user_resp = client.get(f"/users/{user_id}")
     assert get_user_resp.status_code == 200
-
+    get_user_data = get_user_resp.json()
+    assert get_user_data["rating_score"] == 5.0
 
 def test_user_ratings_routes(test_user_token_and_id):
     token = test_user_token_and_id["token"]
@@ -214,13 +259,10 @@ def test_user_ratings_routes(test_user_token_and_id):
     other_password = "Password123!"
     other_email = f"{other_username}@example.com"
 
-    register_resp = client.post(
-        "/auth/register",
-        json={
-            "username": other_username,
-            "password": other_password,
-            "email": other_email,
-        },
+    register_resp = register_user(
+        username=other_username,
+        password=other_password,
+        email=other_email,
     )
     assert register_resp.status_code == 200
     other_user_id = register_resp.json().get("user_id")
@@ -259,7 +301,7 @@ def test_user_ratings_routes(test_user_token_and_id):
     # Get received ratings for the other user
     login_resp = client.post(
         "/auth/login",
-        data={"username": other_username, "password": other_password},
+        data={"username": other_email, "password": other_password},
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert login_resp.status_code == 200

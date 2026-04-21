@@ -55,12 +55,16 @@ def upload_image_to_gcs(file: UploadFile, folder: str = "misc") -> str:
     return unique_filename
 
 
-def generate_signed_url(blob_name: str, expiration_minutes: int = 60) -> str:
+def generate_signed_url(blob_name: str | bytes, expiration_minutes: int = 60) -> str:
     """
     Generates a v4 signed URL for temporarily downloading/viewing a private blob.
     """
     if not blob_name:
         return blob_name
+
+    # MySQL or older schema variants can surface blob names as bytes.
+    if isinstance(blob_name, bytes):
+        blob_name = blob_name.decode("utf-8")
 
     # If the picture is already a valid URL or a raw base64 string, do not sign it
     if blob_name.startswith(("http://", "https://", "data:")) or len(blob_name) > 255:

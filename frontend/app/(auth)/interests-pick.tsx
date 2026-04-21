@@ -1,37 +1,63 @@
 import { StyleSheet, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
-import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { BackButton } from '@/components/back-button';
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { API_URL } from '@/services/config';
+import { asSingleParam } from '@/services/signup-flow';
 
 
-const INTERESTS = [
-    { id: '1', label: 'Exercise' },
-    { id: '2', label: 'Sport' },
-    { id: '3', label: 'Indoor' },
-    { id: '4', label: 'Outdoor' },
-    { id: '5', label: 'Running' },
-    { id: '6', label: 'Cycling' },
-    { id: '7', label: 'Swimming' },
-    { id: '8', label: 'Yoga' },
-    { id: '9', label: 'Hiking' },
-    { id: '10', label: 'Team Sports' },
-    { id: '11', label: 'Martial Arts' },
-    { id: '12', label: 'Dance' },
-    { id: '13', label: 'Rock Climbing' },
-    { id: '14', label: 'CrossFit' },
-    { id: '15', label: 'Weightlifting' },
-];
+type Category = {
+    id: number;
+    name: string;
+};
 
 const MAX_SELECTIONS = 5;
 
 export default function InterestsScreen() {
-    const [selected, setSelected] = useState<string[]>([]);
+    const params = useLocalSearchParams<{
+        email?: string;
+        password?: string;
+        fullName?: string;
+        age?: string;
+    }>();
+    const [selected, setSelected] = useState<number[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
-    const toggle = (id: string) => {
+    const email = asSingleParam(params.email);
+    const password = asSingleParam(params.password);
+    const fullName = asSingleParam(params.fullName);
+    const age = asSingleParam(params.age);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            setIsLoading(true);
+            setLoadError(null);
+
+            try {
+                const response = await fetch(`${API_URL}/categories/`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load categories (${response.status})`);
+                }
+                const data = (await response.json()) as Category[];
+                setCategories(Array.isArray(data) ? data : []);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Failed to load interests';
+                setLoadError(message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCategories();
+    }, []);
+
+    const toggle = (id: number) => {
         setSelected(prev => {
             if (prev.includes(id)) {
                 return prev.filter(i => i !== id);
@@ -41,18 +67,46 @@ export default function InterestsScreen() {
         });
     };
 
-    const canProceed = selected.length >= 1;
+    const signupDataMissing = useMemo(
+        () => !email || !password || !fullName || !age,
+        [age, email, fullName, password]
+    );
+
+    const canProceed = selected.length >= 1 && !signupDataMissing;
+
+    const handleNext = () => {
+        if (!canProceed) {
+            return;
+        }
+
+        router.push({
+            pathname: '/complete-profile',
+            params: {
+                email,
+                password,
+                fullName,
+                age,
+                categoryIds: JSON.stringify(selected),
+            },
+        });
+    };
 
     return (
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff' }}
         >
-
+            <BackButton />
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Choose your{'\n'}interests</ThemedText>
 
                 <ThemedView style={styles.pillsContainer}>
-                    {INTERESTS.map(item => {
+                    {isLoading && (
+                        <ThemedText style={styles.counter}>Loading interests...</ThemedText>
+                    )}
+                    {!isLoading && loadError && (
+                        <ThemedText style={styles.errorText}>{loadError}</ThemedText>
+                    )}
+                    {!isLoading && !loadError && categories.map(item => {
                         const isSelected = selected.includes(item.id);
                         return (
                             <TouchableOpacity
@@ -70,7 +124,7 @@ export default function InterestsScreen() {
                                         isSelected && styles.pillTextSelected,
                                     ]}
                                 >
-                                    {item.label}
+                                    {item.name}
                                 </ThemedText>
                             </TouchableOpacity>
                         );
@@ -83,7 +137,7 @@ export default function InterestsScreen() {
             </ThemedView>
 
             <TouchableOpacity
-                onPress={() => canProceed && router.push('/complete-profile')}
+                onPress={handleNext}
                 style={[styles.button, !canProceed && styles.buttonDisabled]}
                 activeOpacity={canProceed ? 0.8 : 1}
             >
@@ -96,10 +150,6 @@ export default function InterestsScreen() {
 }
 
 const styles = StyleSheet.create({
-    backButton: {
-        marginBottom: 8,
-        alignSelf: 'flex-start',
-    },
     container: {
         gap: 16,
         marginTop: 10,
@@ -136,6 +186,12 @@ const styles = StyleSheet.create({
     counter: {
         textAlign: 'center',
         color: '#555',
+        fontSize: 13,
+        marginTop: 4,
+    },
+    errorText: {
+        textAlign: 'center',
+        color: '#d9534f',
         fontSize: 13,
         marginTop: 4,
     },

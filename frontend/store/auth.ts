@@ -56,7 +56,16 @@ type AuthStore = {
     token: string | null;
     setUser: (user: AppUser | null) => void;
     login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string, username: string) => Promise<void>;
+    register: (payload: {
+        email: string;
+        password: string;
+        fullName: string;
+        age: number;
+        bio: string;
+        city: string;
+        categoryIds: number[];
+        imageUri: string;
+    }) => Promise<void>;
     logout: () => Promise<void>;
     restoreSession: () => Promise<void>;
 };
@@ -142,19 +151,31 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
     },
 
-    register: async (email: string, password: string, username: string) => {
+    register: async ({ email, password, fullName, age, bio, city, categoryIds, imageUri }) => {
         try {
             console.log('Registering with API URL:', API_URL);
+
+            const filename = imageUri.split('/').pop() || 'profile.jpg';
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+            const formData = new FormData();
+            formData.append('email', email.trim().toLowerCase());
+            formData.append('password', password);
+            formData.append('full_name', fullName.trim());
+            formData.append('age', String(age));
+            formData.append('bio', bio.trim());
+            formData.append('city', city.trim());
+            formData.append('category_ids', JSON.stringify(categoryIds));
+            formData.append('profile_picture', {
+                uri: imageUri,
+                name: filename,
+                type,
+            } as any);
+
             const response = await fetchWithTimeout(`${API_URL}/auth/register`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                    username,
-                }),
+                body: formData,
             });
 
             if (!response.ok) {
@@ -169,20 +190,22 @@ export const useAuthStore = create<AuthStore>((set) => ({
             }
 
             const data = await response.json();
-            const newUser: AppUser = {
-                id: data.user_id,
-                name: username,
-                email,
-                photoUri: null,
-                user_picture: null,
-            };
+            const token = data.access_token as string;
+            const backendUser = data.user as BackendUser;
+            const newUser = mapBackendUserToAppUser(backendUser);
             console.log('Registration successful');
-            
-            set({ user: newUser });
-            
-            // Store user data in background (non-blocking)
-            secureStoreSetItem('joinme_userData', JSON.stringify(newUser)).catch((storeError) => {
-                console.error('SecureStore userData write failed:', storeError);
+
+            set({
+                isAuthenticated: true,
+                token,
+                user: newUser,
+            });
+
+            Promise.allSettled([
+                secureStoreSetItem('joinme_token', token),
+                secureStoreSetItem('joinme_userData', JSON.stringify(newUser)),
+            ]).catch((storeError) => {
+                console.error('SecureStore register write failed:', storeError);
             });
         } catch (error) {
             console.error('Registration error:', error);

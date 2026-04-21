@@ -130,12 +130,31 @@ export default function UserProfile() {
 
       <Image source={{ uri: profileUser?.photoUri ?? undefined }} style={styles.avatar} />
 
-      <View style={styles.divider} />
 
-      <View style={styles.row}>
-        <Text style={styles.location}>📍 {profileUser?.city ?? 'Unknown City'}</Text>
-        <Text style={styles.age}>{profileUser?.age ?? '-'}</Text>
+      <View style={styles.statsContainer}>
+        <View style={[styles.statItem, styles.cityItem]}>
+          <Text style={[styles.statNumber, styles.cityText]}>
+          {profileUser?.city ?? "-"}
+          </Text>
+          <Text style={[styles.statLabel, styles.cityLabel]}>
+            City
+          </Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>
+            {profileUser?.age ?? "-"}
+          </Text>
+          <Text style={styles.statLabel}>Age</Text>
+        </View>
+
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>
+            {profileUser?.rating_score.toFixed(1) ?? "-"}
+          </Text>
+          <Text style={styles.statLabel}>Rating</Text>
+        </View>
       </View>
+      <View style={styles.divider} />
 
       <Text style={styles.sectionTitle}>Interests</Text>
       <View style={styles.interestsContainer}>
@@ -150,7 +169,7 @@ export default function UserProfile() {
       </View>
 
       <Text style={styles.sectionTitle}>About me</Text>
-  <Text style={styles.about}>{profileUser?.bio || 'No bio added yet.'}</Text>
+      <Text style={styles.about}>{profileUser?.bio || 'No bio added yet.'}</Text>
 
       <View style={styles.buttonRow}>
         {authUser?.id === profileUser?.id ? (
@@ -283,4 +302,36 @@ const styles = StyleSheet.create({
   backIcon: {
         transform: [{ scaleX: -1 }],
     },
+ statsContainer: {
+  flexDirection: "row",
+  justifyContent: "space-around",
+  alignItems: "center",
+  gap: 60, // controls space BETWEEN 28 and 2.0
+  marginTop: 20,
+},
+
+statItem: {
+  alignItems: "center", // centers label under number
+},
+
+statNumber: {
+  color: "#fff",
+  fontSize: 20,
+  fontWeight: "600",
+},
+
+statLabel: {
+  color: "#aaa",
+  fontSize: 12,
+  marginTop: 2,
+},
+
+locationCentered: {
+  textAlign: "center",
+  color: "#ddd",
+},
+cityItem: {
+  alignItems: "flex-start",
+  maxWidth: 160,
+},
 });

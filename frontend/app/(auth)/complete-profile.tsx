@@ -1,21 +1,37 @@
-import { StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Image, Alert, KeyboardAvoidingView } from 'react-native';
 import { useState } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { BackButton } from '@/components/back-button';
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuthStore } from '@/store/auth';
+import { asSingleParam, parseCategoryIdsParam } from '@/services/signup-flow';
 
 
 const BIO_MAX_LENGTH = 300;
 
 export default function CompleteProfileScreen() {
+    const params = useLocalSearchParams<{
+        email?: string;
+        password?: string;
+        fullName?: string;
+        age?: string;
+        categoryIds?: string;
+    }>();
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const [bio, setBio] = useState('');
-    const login = useAuthStore(state => state.login);
+    const [loading, setLoading] = useState(false);
+    const register = useAuthStore(state => state.register);
+
+    const email = asSingleParam(params.email);
+    const password = asSingleParam(params.password);
+    const fullName = asSingleParam(params.fullName);
+    const age = asSingleParam(params.age);
+    const categoryIdsParam = asSingleParam(params.categoryIds);
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -36,22 +52,59 @@ export default function CompleteProfileScreen() {
         }
     };
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
         if (!photoUri || bio.length === 0) {
             Alert.alert('Incomplete Profile', 'Please upload a photo and write a bio to continue.');
             return;
         }
-        // TODO: Submit profile data (photo + bio) to your backend
 
-       login();
+        if (!email || !password || !fullName || !age || !categoryIdsParam) {
+            Alert.alert('Missing signup data', 'Please restart signup and try again.');
+            return;
+        }
+
+        const categoryIds = parseCategoryIdsParam(categoryIdsParam);
+
+        if (categoryIds.length === 0) {
+            Alert.alert('Missing interests', 'Please go back and select at least one interest.');
+            return;
+        }
+
+        const parsedAge = Number(age);
+        if (!Number.isInteger(parsedAge) || parsedAge <= 0) {
+            Alert.alert('Invalid age', 'Please restart signup and enter a valid date of birth.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await register({
+                email,
+                password,
+                fullName,
+                age: parsedAge,
+                bio,
+                categoryIds,
+                imageUri: photoUri,
+            });
+            router.replace('/feed');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Signup failed';
+            Alert.alert('Signup failed', message);
+        } finally {
+            setLoading(false);
+        }
+
     };
 
     const canFinish = !!photoUri && bio.length > 0;
 
     return (
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff' }}
         >
+            <BackButton />
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Complete{'\n'}your profile</ThemedText>
 
@@ -95,11 +148,12 @@ export default function CompleteProfileScreen() {
                 </ThemedView>
             </ThemedView>
 
-            <TouchableOpacity style={[styles.button, !canFinish && styles.buttonDisabled]} onPress={handleFinish} activeOpacity={!canFinish ? 0.8: 1} >
-                <ThemedText type="defaultSemiBold" style={styles.buttonText}>Finish</ThemedText>
+            <TouchableOpacity style={[styles.button, (!canFinish || loading) && styles.buttonDisabled]} onPress={handleFinish} activeOpacity={canFinish && !loading ? 0.8 : 1} >
+                <ThemedText type="defaultSemiBold" style={styles.buttonText}>{loading ? 'Creating profile...' : 'Finish'}</ThemedText>
             </TouchableOpacity>
         
         </ParallaxScrollView>
+        </KeyboardAvoidingView>
     );
 }
 

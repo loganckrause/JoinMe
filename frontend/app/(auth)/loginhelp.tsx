@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { router } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { BackButton } from '@/components/back-button';
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from '@/components/themed-text';
 
@@ -21,6 +22,7 @@ export default function LoginHelpScreen() {
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
+            <BackButton />
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Forgotten password?</ThemedText>
                 <ThemedView style={styles.inputContainer}>

@@ -8,6 +8,7 @@ export type BackendUser = {
   bio?: string | null;
   age?: number | null;
   user_picture?: string | null;
+  rating_score: number;
 };
 
 export type AppUser = {
@@ -18,6 +19,7 @@ export type AppUser = {
   age?: number;
   user_picture?: string | null;
   photoUri?: string | null;
+  rating_score: number;
 };
 
 export function toImageUri(rawPicture?: string | null): string {
@@ -45,6 +47,7 @@ export function mapBackendUserToAppUser(user: BackendUser): AppUser {
     age: user.age ?? undefined,
     user_picture: user.user_picture ?? null,
     photoUri: toImageUri(user.user_picture),
+    rating_score: user.rating_score ?? 5.0
   };
 }
 
