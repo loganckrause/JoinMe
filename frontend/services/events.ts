@@ -109,3 +109,10 @@ export async function fetchEventParticipants(eventId: number, creatorId: number)
     attendees,
   };
 }
+
+export async function fetchEventsHosted(token?: string): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>('/events/hosted', {
+    token,
+  });
+  return events.map(mapBackendEventToCard);
+}
