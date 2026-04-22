@@ -9,7 +9,6 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
 import Sidebar from '@/components/ui/sidebar';
-// RESOLVED: kept both recordSwipe (HEAD) and FilterModal + EventFilters (main)
 import FilterModal from '@/components/ui/filter-modal';
 import { fetchEvents, EventCard, EventFilters, recordSwipe } from '@/services/events';
 import { useAuthStore } from '@/store/auth';
@@ -52,7 +51,6 @@ export default function FeedScreen() {
 
         loadEvents();
         return () => { mounted = false; };
-    // RESOLVED: kept [filters, token] dependency array (main) so filters trigger reload
     }, [filters, token]);
 
     const translateX = useSharedValue(0);
@@ -231,7 +229,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         height: 150,
     },
-    // RESOLVED: kept headerRight and filterDot from location branch
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',

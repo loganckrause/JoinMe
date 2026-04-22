@@ -77,9 +77,6 @@ def _get_optional_current_user(
     return session.exec(select(User).where(User.email == email)).first()
 
 
-# ── RESOLVED: removed duplicate get_event_feed. Kept the full version with
-#    radius filtering, category/date filters, distance calculation, and
-#    is_accepted flag. The first incomplete duplicate was discarded. ──
 @router.get("/")
 async def get_event_feed(
     radius: float = 50.0,
@@ -149,9 +146,6 @@ async def get_event_feed(
     return result
 
 
-# ── RESOLVED: removed duplicate get_event. Kept the full version with
-#    optional auth, is_accepted flag, and signed picture URL.
-#    The simpler duplicate below it was discarded. ──
 @router.get("/{eventId}")
 async def get_event(
     eventId: int,

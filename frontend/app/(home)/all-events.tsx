@@ -22,7 +22,6 @@ export default function AllEventsScreen() {
     const user = useAuthStore((state) => state.user);
     const token = useAuthStore((state) => state.token);
 
-    // RESOLVED: kept hasActiveFilters from main
     const hasActiveFilters =
         filters.categoryId != null ||
         !!filters.dateFrom ||
@@ -36,7 +35,6 @@ export default function AllEventsScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                // RESOLVED: kept new signature with radius + filters (main)
                 const fetchedEvents = await fetchEvents(filters.radius || 50, token, filters);
                 if (mounted) setEvents(fetchedEvents);
             } catch (loadError) {
@@ -50,10 +48,8 @@ export default function AllEventsScreen() {
 
         loadEvents();
         return () => { mounted = false; };
-    // RESOLVED: kept [filters, token] so filter changes trigger a reload
     }, [filters, token]);
 
-    // RESOLVED: kept onRefresh from HEAD, updated fetchEvents call to new signature
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
