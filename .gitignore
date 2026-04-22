@@ -67,6 +67,10 @@ env/
 
 # Environment files
 .env
+.env.local
+
+# Claude Code workspace
+.claude/
 
 # Database for testing
 joinme.db
