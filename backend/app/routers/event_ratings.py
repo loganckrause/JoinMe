@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.notifications import NotificationType, create_notification
 from app.models.user import User
 from app.models.event import Event
 from app.models.event_rating import EventRating
@@ -97,6 +98,15 @@ async def create_event_rating(
     )
 
     session.add(rating)
+
+    if event.creator_id != current_user.id:
+        create_notification(
+            session,
+            event.creator_id,
+            f'{current_user.name} rated your event "{event.title}" {payload.score} stars.',
+            NotificationType.EVENT_RATED,
+        )
+
     session.commit()
     session.refresh(rating)
 

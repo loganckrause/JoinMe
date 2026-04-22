@@ -5,6 +5,7 @@ from sqlmodel import Session, select, func
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.notifications import NotificationType, create_notification
 from app.models.user import User
 from app.models.user_rating import UserRating
 
@@ -105,6 +106,14 @@ async def create_user_rating(
     )
 
     session.add(rating)
+
+    create_notification(
+        session,
+        payload.ratee_id,
+        f"{current_user.name} gave you a {payload.score}-star rating.",
+        NotificationType.USER_RATED,
+    )
+
     session.commit()
     session.refresh(rating)
 

@@ -235,6 +235,7 @@ async def register(
         "Welcome to JoinMe! Start exploring events near you.",
         NotificationType.WELCOME,
     )
+    session.commit()
     return {
         "message": "User created successfully",
         "user_id": new_user.id,
