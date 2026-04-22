@@ -21,6 +21,10 @@ class UserRatingSummaryResponse(BaseModel):
     rating_score: float
 
 
+class PushTokenPayload(BaseModel):
+    token: str
+
+
 @router.get("/me")
 async def read_current_user(
     current_user: User = Depends(get_auth_user),
@@ -82,6 +86,21 @@ async def get_user(userId: int, session: Session = Depends(get_session)):
 
 
     return user_payload
+
+
+@router.post("/me/push-token")
+async def register_push_token(
+    payload: PushTokenPayload,
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    token = payload.token.strip()
+    if not token.startswith("ExponentPushToken[") and not token.startswith("ExpoPushToken["):
+        raise HTTPException(status_code=400, detail="Invalid Expo push token")
+    current_user.expo_push_token = token
+    session.add(current_user)
+    session.commit()
+    return {"ok": True}
 
 
 @router.post("/me/picture")

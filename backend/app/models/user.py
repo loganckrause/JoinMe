@@ -15,6 +15,7 @@ class User(SQLModel, table=True):
     bio: Optional[str] = Field(default=None)
     age: Optional[int] = Field(default=None, index=True)
     user_picture: str | None = Field(default=None)
+    expo_push_token: str | None = Field(default=None)
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

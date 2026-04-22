@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from sqlmodel import Session, select
@@ -65,6 +65,7 @@ async def get_event_ratings(
 @router.post("/")
 async def create_event_rating(
     payload: EventRatingCreatePayload,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -105,6 +106,7 @@ async def create_event_rating(
             event.creator_id,
             f'{current_user.name} rated your event "{event.title}" {payload.score} stars.',
             NotificationType.EVENT_RATED,
+            background_tasks=background_tasks,
         )
 
     session.commit()
