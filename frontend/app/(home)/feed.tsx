@@ -68,11 +68,14 @@ export default function FeedScreen() {
     const nextEvent = queue[1] ?? null;
     const isEmpty = !loading && queue.length === 0;
 
+    useEffect(() => {
+        translateX.value = 0;
+        translateY.value = 0;
+    }, [currentEvent?.id]);
+
     // Removes the top card from the queue
     const dismissTop = () => {
         setQueue(prev => prev.slice(1));
-        translateX.value = 0;
-        translateY.value = 0;
     };
 
     const panGesture = Gesture.Pan()
@@ -332,6 +335,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontFamily: 'Inter-Light',
     },
+<<<<<<< location
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -348,3 +352,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#59d386ff',
     },
 });
+=======
+});
+>>>>>>> main

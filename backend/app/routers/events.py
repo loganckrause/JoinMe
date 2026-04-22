@@ -369,3 +369,23 @@ async def get_user_events(
                 event.event_picture = generate_signed_url(pic_name)
 
     return events
+
+@router.get("/hosted")
+async def get_hosted_events(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    statement = select(Event).where(Event.creator_id == current_user.id)
+    events = session.exec(statement).all()
+
+    for event in events:
+        if event.event_picture:
+            pic_name = (
+                event.event_picture.decode("utf-8")
+                if isinstance(event.enevt_picture, bytes)
+                else event.event_picture
+            )
+            if pic_name:
+                event.event_picture = generate_signed_url(pic_name)
+
+    return events
