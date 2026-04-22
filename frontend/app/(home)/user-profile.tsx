@@ -174,7 +174,7 @@ export default function UserProfile() {
           </TouchableOpacity>
         ) : null}
 
-        <TouchableOpacity style={styles.outlineBtn}>
+        <TouchableOpacity style={styles.outlineBtn} onPress={() => router.push('/createdevents')}>
           <Text style={styles.outlineText}>See events</Text>
         </TouchableOpacity>
       </View>
