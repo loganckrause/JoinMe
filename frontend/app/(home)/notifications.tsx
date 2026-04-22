@@ -131,9 +131,17 @@ export default function NotificationsScreen() {
                     <IconSymbol name="chevron.right" size={24} color="#fff" style={styles.backIcon} />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.headerTitle}>Notifications</ThemedText>
-                <TouchableOpacity onPress={markAllRead}>
-                    <ThemedText style={styles.markAllText}>Mark all read</ThemedText>
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={markAllRead}>
+                        <ThemedText style={styles.markAllText}>Mark all read</ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={() => router.push('/notification-settings')}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <IconSymbol name="gearshape.fill" size={22} color="#fff" />
+                    </TouchableOpacity>
+                </View>
             </View>
             <FlatList
                 data={notifications}
@@ -181,6 +189,11 @@ const styles = StyleSheet.create({
     markAllText: {
         fontSize: 14,
         color: '#59d386ff',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
     },
     list: {
         paddingHorizontal: 16,

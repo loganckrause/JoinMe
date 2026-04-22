@@ -49,6 +49,7 @@ async function secureStoreDeleteItem(key: string) {
     ]);
 }
 import { AppUser, BackendUser, mapBackendUserToAppUser } from '@/services/user';
+import { registerForPushNotifications } from '@/services/notifications';
 
 type AuthStore = {
     isAuthenticated: boolean;
@@ -130,7 +131,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 user,
                 token,
             });
-            
+
             // Store token and user data securely in background (non-blocking)
             Promise.allSettled([
                 secureStoreSetItem('joinme_token', token),
@@ -139,6 +140,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 console.log('SecureStore write completed in background');
             }).catch((error) => {
                 console.error('SecureStore write error:', error);
+            });
+
+            registerForPushNotifications(token).catch((err) => {
+                console.warn('Push token registration failed:', err);
             });
         } catch (error) {
             console.error('Login error:', error);
@@ -207,6 +212,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
             ]).catch((storeError) => {
                 console.error('SecureStore register write failed:', storeError);
             });
+
+            registerForPushNotifications(token).catch((err) => {
+                console.warn('Push token registration failed:', err);
+            });
         } catch (error) {
             console.error('Registration error:', error);
             if (error instanceof TypeError) {
@@ -251,6 +260,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
                     isAuthenticated: true,
                     user,
                     token,
+                });
+                registerForPushNotifications(token).catch((err) => {
+                    console.warn('Push token registration failed:', err);
                 });
             }
         } catch (error) {
