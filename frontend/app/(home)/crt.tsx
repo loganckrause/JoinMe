@@ -1,7 +1,13 @@
-import { StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import { useAuthStore } from '@/store/auth';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { createEvent, fetchCategories } from '@/services/events';
+import { toSidebarUser } from "@/services/user";
+import { fetchMyInterests } from '@/services/profile';
 
 import Sidebar from "@/components/ui/sidebar";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
@@ -15,10 +21,16 @@ export default function CrtEvntScreen() {
     const route = useRoute();
     const { event } = route.params || {};
     const [count, setCount] = useState(2);
+    const user = useAuthStore((state) => state.user);
+    const token = useAuthStore(state => state.token);
+
+    const [showMore, setShowMore] = useState(false);
+    const [dateValue, setDateValue] = useState(new Date());
+    const [timeValue, setTimeValue] = useState(new Date());
 
     const MAX_SELECTIONS = 5;
-    const [selected, setSelected] = useState<string[]>([]);
-    const toggle = (id: string) => {
+    const [selected, setSelected] = useState<number[]>([]);
+    const toggle = (id: number) => {
         setSelected(prev => {
             if (prev.includes(id)) {
                 return prev.filter(i => i !== id);
@@ -34,13 +46,28 @@ export default function CrtEvntScreen() {
     const [time, setTime] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
+    const [interests, setInterests] = useState<{id: number, label: string}[]>([]);
+    const [allInterests, setAllInterests] = useState<{id: number, label: string}[]>([]);
+    const [userInterestLabels, setUserInterestLabels] = useState<string[]>([]);
 
-    const interests = [
-        { id: '1', label: 'Exercise' },
-        { id: '2', label: 'Sport' },
-        { id: '3', label: 'Indoor' },
-        { id: '4', label: 'Coffee' },
-    ]
+    useEffect(() => {
+        if (!token) return;
+        fetchMyInterests(token)
+            .then(setUserInterestLabels)
+            .catch(console.error);
+    }, [token]);
+
+    useEffect(() => {
+        fetchCategories()
+            .then(data => {
+                const formatted = data.map(item => ({ id: item.id, label: item.name }));
+                setAllInterests(formatted);
+            })
+            .catch(console.error);
+    }, [token]);
+
+    const displayedInterests = allInterests.filter(item => userInterestLabels.includes(item.label));
+    const moreinterests = allInterests.filter(item => !userInterestLabels.includes(item.label));
 
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const pickImage = async () => {
@@ -59,6 +86,48 @@ export default function CrtEvntScreen() {
             setPhotoUri(result.assets[0].uri);
         }
     };
+
+    const formatDT = () => {
+        const dt = new Date(dateValue);
+        dt.setHours(timeValue.getHours(), timeValue.getMinutes(), 0, 0);
+        return dt.toISOString();
+    }
+
+    const createevent = async () => {
+        if (!eventName || !location || !description) {
+             Alert.alert('Missing info', 'Please fill in all required fields.');
+             return;
+         }
+         try {
+             setLoading(true);
+             const data = await createEvent({
+                 title: eventName,
+                 description,
+                 event_picture: photoUri,
+                 event_date: formatDT(),
+                 max_capacity: count,
+                 location,
+                 latitude: 0,    // Placeholder values for latitude and longitude
+                 longitude: 0,
+                 category_id: selected[0],
+             },
+             token
+         );
+
+             console.log("Created event:", data);
+             router.push({
+                 pathname: '/event',
+                 params: {
+                     event: JSON.stringify(data),
+                 },
+             });
+         } catch (error) {
+             console.error('Error creating event:', error);
+             Alert.alert('Error', 'There was a problem creating your event. Please try again.');
+         } finally {
+             setLoading(false);
+         }
+     };
     return(
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
@@ -106,24 +175,30 @@ export default function CrtEvntScreen() {
                 </ThemedView>
                 <ThemedView style={styles.inputRow}>
                     <ThemedView style={styles.smallIC}>
-                        <TextInput
-                            placeholder="mm/dd/yyyy"
-                            placeholderTextColor='#ccc'
-                            style={styles.input}
-                            value={date}
-                            onChangeText={setDate}
-                            editable={!loading}
+                        <DateTimePicker
+                        style={styles.d}
+                            value={dateValue}
+                            mode="date"
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                                setDateValue(selectedDate);
+                                setDate(`${selectedDate.getMonth() + 1}/${selectedDate.getDate()}/${selectedDate.getFullYear()}`);
+                            }}
                         />
                         <ThemedView style={styles.locimg}>
                             <IconSymbol name="calendar" color="#ffffffff" size={20} />
                         </ThemedView>
                     </ThemedView>
                     <ThemedView style={styles.smallIC}>
-                        <TextInput
-                            style={styles.input}
-                            value={time}
-                            onChangeText={setTime}
-                            editable={!loading}
+                        <DateTimePicker
+                            value={timeValue}
+                            mode="time"
+                            display="default"
+                            onChange={(event, selectedTime) => {
+                                if (selectedTime) {
+                                    setTimeValue(selectedTime);
+                                    setTime(`${selectedTime.getHours()}:${selectedTime.getMinutes()}`);                                }
+                            }}
                         />
                         <ThemedView style={styles.locimg}>
                             <IconSymbol name="clock" color="#ffffffff" size={20} />
@@ -145,7 +220,30 @@ export default function CrtEvntScreen() {
                 </ThemedView>
                 <ThemedText style={styles.t2}>Interests</ThemedText>
                 <ThemedView style={styles.pillsContainer}>
-                    {interests.map(item => {
+                    {displayedInterests.map((item) => {
+                        const isSelected = selected.includes(item.id);
+                        return (
+                            <TouchableOpacity
+                                key={item.id}
+                                onPress={() => toggle(item.id)}
+                                style={[
+                                    styles.pill,
+                                    isSelected && styles.pillSelected,
+                                ]}
+                                activeOpacity={0.7}
+                            >
+                                <ThemedText
+                                    style={[
+                                        styles.pillText,
+                                        isSelected && styles.pillTextSelected,
+                                    ]}
+                                >
+                                    {item.label}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        );
+                    })}
+                    {showMore && moreinterests.map(item => {
                         const isSelected = selected.includes(item.id);
                             return (
                             <TouchableOpacity
@@ -168,7 +266,7 @@ export default function CrtEvntScreen() {
                             </TouchableOpacity>
                         );
                     })}
-                    <TouchableOpacity style={styles.addPill}>
+                    <TouchableOpacity style={styles.addPill} onPress={() => setShowMore(prev => !prev)}>
                         <ThemedText style={styles.addTxt}>+</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>
@@ -197,13 +295,12 @@ export default function CrtEvntScreen() {
                 <Sidebar
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
-                    user={{ name: "John Doe", photoUri: null }} // Define user here or as a variable
+                    user={toSidebarUser(user)} 
                 />
             </ThemedView>
-            <TouchableOpacity style={styles.butt}>
+            <TouchableOpacity style={styles.butt} onPress={createevent}>
                 <ThemedText style={styles.buttText}>Publish Event</ThemedText>
             </TouchableOpacity>
-            
         </ParallaxScrollView>
     )
 }
@@ -362,5 +459,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
+    },
+    d: {
+        left: -17,
     },
 });
