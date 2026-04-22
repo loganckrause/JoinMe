@@ -18,6 +18,7 @@ export default function SignupScreen() {
     const [fname, setFname] = useState('');
     const [lname, setLname] = useState('');
     const [dob, setDob] = useState('');
+    const [city, setCity] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [cnfmPassword, setCnfmPassword] = useState('');
@@ -27,6 +28,7 @@ export default function SignupScreen() {
             setFname('');
             setLname('');
             setDob('');
+            setCity('');
             setEmail('');
             setPassword('');
             setCnfmPassword('');
@@ -38,9 +40,10 @@ export default function SignupScreen() {
     const handleSignupPress = () => {
         const trimmedFirstName = fname.trim();
         const trimmedLastName = lname.trim();
+        const trimmedCity = city.trim();
         const trimmedEmail = email.trim().toLowerCase();
 
-        if (!trimmedFirstName || !trimmedLastName || !dob.trim() || !trimmedEmail || !password || !cnfmPassword) {
+        if (!trimmedFirstName || !trimmedLastName || !dob.trim() || !trimmedCity || !trimmedEmail || !password || !cnfmPassword) {
             Alert.alert('Missing fields', 'Please complete all fields before continuing.');
             return;
         }
@@ -68,6 +71,7 @@ export default function SignupScreen() {
                 password,
                 fullName: `${trimmedFirstName} ${trimmedLastName}`,
                 age: String(age),
+                city: trimmedCity,
             },
         });
     };
@@ -105,6 +109,14 @@ export default function SignupScreen() {
                         style={styles.input}
                         value={dob}
                         onChangeText={setDob}
+                    />
+                    <ThemedText style={styles.text}>City</ThemedText>
+                    <TextInput
+                        placeholder="Enter your city"
+                        placeholderTextColor='#888'
+                        style={styles.input}
+                        value={city}
+                        onChangeText={setCity}
                     />
                     <ThemedText style={styles.text}>Email</ThemedText>
                     <TextInput
