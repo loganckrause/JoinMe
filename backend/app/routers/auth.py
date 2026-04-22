@@ -1,7 +1,7 @@
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from pydantic import EmailStr
 from sqlmodel import Session, select
 from fastapi.security import OAuth2PasswordRequestForm
@@ -28,6 +28,7 @@ async def register(
     city: Annotated[str, Form(...)],
     category_ids: Annotated[str, Form(...)],
     profile_picture: Annotated[UploadFile, File(...)],
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
 ):
     if not password.strip():
@@ -234,6 +235,7 @@ async def register(
         new_user.id,
         "Welcome to JoinMe! Start exploring events near you.",
         NotificationType.WELCOME,
+        background_tasks=background_tasks,
     )
     session.commit()
     return {
