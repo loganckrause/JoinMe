@@ -22,6 +22,7 @@ const MAPPING = {
   'eye': 'visibility',
   'bell.fill': 'notifications',
   'chevron.left': 'chevron-left',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**

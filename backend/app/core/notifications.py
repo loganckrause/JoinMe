@@ -5,14 +5,17 @@ from typing import Optional
 
 import httpx
 from fastapi import BackgroundTasks
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.notification import Notification
+from app.models.notification_preference import NotificationPreference
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+MASTER_PREF_KEY = "master"
 
 _TITLE_BY_TYPE = {
     "welcome": "Welcome to JoinMe!",
@@ -36,6 +39,34 @@ class NotificationType:
     EVENT_RATED = "event_rated"
 
 
+def _get_pref(
+    session: Session, user_id: int, notification_type: str
+) -> Optional[NotificationPreference]:
+    return session.exec(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == user_id,
+            NotificationPreference.notification_type == notification_type,
+        )
+    ).first()
+
+
+def _channels_allowed(
+    session: Session, user_id: int, notification_type: str
+) -> tuple[bool, bool]:
+    """Returns (in_app_allowed, push_allowed) for this user + type."""
+    master = _get_pref(session, user_id, MASTER_PREF_KEY)
+    pref = _get_pref(session, user_id, notification_type)
+
+    in_app = pref.in_app_enabled if pref else True
+    push = pref.push_enabled if pref else True
+
+    if master:
+        in_app = in_app and master.in_app_enabled
+        push = push and master.push_enabled
+
+    return in_app, push
+
+
 async def send_push(token: str, title: str, body: str) -> None:
     payload = {"to": token, "title": title, "body": body, "sound": "default"}
     try:
@@ -55,15 +86,23 @@ def create_notification(
     content: str,
     notification_type: str = "general",
     background_tasks: Optional[BackgroundTasks] = None,
-) -> Notification:
-    notification = Notification(
-        user_id=user_id,
-        content=content,
-        notification_type=notification_type,
+) -> Optional[Notification]:
+    in_app_allowed, push_allowed = _channels_allowed(
+        session, user_id, notification_type
     )
-    session.add(notification)
+    if not in_app_allowed and not push_allowed:
+        return None
 
-    if background_tasks is not None:
+    notification: Optional[Notification] = None
+    if in_app_allowed:
+        notification = Notification(
+            user_id=user_id,
+            content=content,
+            notification_type=notification_type,
+        )
+        session.add(notification)
+
+    if push_allowed and background_tasks is not None:
         user = session.get(User, user_id)
         if user and user.expo_push_token:
             title = _TITLE_BY_TYPE.get(notification_type, "JoinMe")
@@ -79,18 +118,25 @@ def create_notifications_bulk(
     notification_type: str = "general",
     background_tasks: Optional[BackgroundTasks] = None,
 ) -> list[Notification]:
-    notifications = []
+    notifications: list[Notification] = []
     title = _TITLE_BY_TYPE.get(notification_type, "JoinMe")
     for user_id in user_ids:
-        notification = Notification(
-            user_id=user_id,
-            content=content,
-            notification_type=notification_type,
+        in_app_allowed, push_allowed = _channels_allowed(
+            session, user_id, notification_type
         )
-        session.add(notification)
-        notifications.append(notification)
+        if not in_app_allowed and not push_allowed:
+            continue
 
-        if background_tasks is not None:
+        if in_app_allowed:
+            notification = Notification(
+                user_id=user_id,
+                content=content,
+                notification_type=notification_type,
+            )
+            session.add(notification)
+            notifications.append(notification)
+
+        if push_allowed and background_tasks is not None:
             user = session.get(User, user_id)
             if user and user.expo_push_token:
                 background_tasks.add_task(
