@@ -227,6 +227,16 @@ async def leave_event(
         raise HTTPException(status_code=404, detail="Not attending this event")
 
     session.delete(attendance)
+
+    event = session.get(Event, eventId)
+    if event and event.creator_id != current_user.id:
+        create_notification(
+            session,
+            event.creator_id,
+            f'{current_user.name} left your event "{event.title}".',
+            NotificationType.ATTENDANCE_LEFT,
+        )
+
     session.commit()
     return {"message": "Left event successfully"}
 

@@ -10,6 +10,9 @@ class NotificationType:
     EVENT_UPDATED = "event_updated"
     EVENT_CANCELLED = "event_cancelled"
     ATTENDANCE_JOINED = "attendance_joined"
+    ATTENDANCE_LEFT = "attendance_left"
+    USER_RATED = "user_rated"
+    EVENT_RATED = "event_rated"
 
 
 def create_notification(
