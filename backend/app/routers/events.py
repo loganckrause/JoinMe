@@ -45,7 +45,9 @@ class EventUpdatePayload(BaseModel):
     category_id: int | None = None
 
 
-def _get_attendee_user_ids(session: Session, event_id: int, exclude_user_id: int | None = None) -> list[int]:
+def _get_attendee_user_ids(
+    session: Session, event_id: int, exclude_user_id: int | None = None
+) -> list[int]:
     stmt = select(Attendance.user_id).where(Attendance.event_id == event_id)
     if exclude_user_id is not None:
         stmt = stmt.where(Attendance.user_id != exclude_user_id)
@@ -57,12 +59,21 @@ async def get_event_feed(
     radius: float = 50.0,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
+    category_id: int | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
 ):
-    rows = session.exec(
-        select(Event, Category.name).join(
-            Category, Category.id == Event.category_id, isouter=True
-        )
-    ).all()
+    stmt = select(Event, Category.name).join(
+        Category, Category.id == Event.category_id, isouter=True
+    )
+    if category_id is not None:
+        stmt = stmt.where(Event.category_id == category_id)
+    if date_from is not None:
+        stmt = stmt.where(Event.event_date >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(Event.event_date <= date_to)
+
+    rows = session.exec(stmt).all()
 
     result = []
     for event, category_name in rows:
@@ -98,6 +109,31 @@ async def get_event_feed(
         result.append(event_data)
 
     return result
+
+
+@router.get("/{eventId}")
+async def get_event(
+    eventId: int,
+    session: Session = Depends(get_session),
+):
+    event = session.get(Event, eventId)
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    category = session.get(Category, event.category_id)
+
+    if event.event_picture:
+        pic_name = (
+            event.event_picture.decode("utf-8")
+            if isinstance(event.event_picture, bytes)
+            else event.event_picture
+        )
+        if pic_name:
+            event.event_picture = generate_signed_url(pic_name)
+
+    event_data = event.model_dump()
+    event_data["category_name"] = category.name if category else None
+    return event_data
 
 
 @router.post("/")
@@ -153,7 +189,9 @@ async def update_event(
     session.add(event)
 
     # Notify attendees about the update
-    attendee_ids = _get_attendee_user_ids(session, eventId, exclude_user_id=current_user.id)
+    attendee_ids = _get_attendee_user_ids(
+        session, eventId, exclude_user_id=current_user.id
+    )
     if attendee_ids:
         create_notifications_bulk(
             session,
@@ -180,7 +218,9 @@ async def delete_event(
     event_title = event.title
 
     # Notify attendees before deleting
-    attendee_ids = _get_attendee_user_ids(session, eventId, exclude_user_id=current_user.id)
+    attendee_ids = _get_attendee_user_ids(
+        session, eventId, exclude_user_id=current_user.id
+    )
     if attendee_ids:
         create_notifications_bulk(
             session,
@@ -215,7 +255,16 @@ async def get_event_attendees(eventId: int, session: Session = Depends(get_sessi
     for attendance in attendances:
         user = session.get(User, attendance.user_id)
         if user:
-            attendees.append({"id": user.id, "name": user.name})
+            pic_url = None
+            if user.user_picture:
+                pic_name = (
+                    user.user_picture.decode("utf-8")
+                    if isinstance(user.user_picture, bytes)
+                    else user.user_picture
+                )
+                if pic_name:
+                    pic_url = generate_signed_url(pic_name)
+            attendees.append({"id": user.id, "name": user.name, "photoUri": pic_url})
     return attendees
 
 
@@ -273,7 +322,6 @@ async def leave_event(
     session.delete(attendance)
     session.commit()
     return {"message": "Left event successfully"}
-
 
 
 @router.post("/{eventId}/picture")

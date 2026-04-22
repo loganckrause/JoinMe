@@ -4,23 +4,28 @@ import React, { useEffect, useState } from "react";
 
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
+import FilterModal from "@/components/ui/filter-modal";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { fetchEvents, EventCard } from "@/services/events";
+import { fetchEvents, EventCard, EventFilters } from "@/services/events";
 import { useAuthStore } from "@/store/auth";
 import { toSidebarUser } from "@/services/user";
 
 export default function AllEventsScreen() {
         const [sidebarOpen, setSidebarOpen] = useState(false);
+        const [filterModalOpen, setFilterModalOpen] = useState(false);
+        const [filters, setFilters] = useState<EventFilters>({});
         const [events, setEvents] = useState<EventCard[]>([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState<string | null>(null);
         const user = useAuthStore((state) => state.user);
         const token = useAuthStore((state) => state.token);
-        const [showFilters, setShowFilters] = useState(false);
-        const [radius, setRadius] = useState<number>(50);
 
-        const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
+        const hasActiveFilters =
+            filters.categoryId != null ||
+            !!filters.dateFrom ||
+            !!filters.dateTo ||
+            (filters.radius != null && filters.radius !== 50);
 
         useEffect(() => {
             let mounted = true;
@@ -29,7 +34,7 @@ export default function AllEventsScreen() {
                 try {
                     setLoading(true);
                     setError(null);
-                    const fetchedEvents = await fetchEvents(radius, token);
+                    const fetchedEvents = await fetchEvents(filters.radius || 50, token, filters);
                     if (mounted) {
                         setEvents(fetchedEvents);
                     }
@@ -49,7 +54,7 @@ export default function AllEventsScreen() {
             return () => {
                 mounted = false;
             };
-        }, [radius, token]);
+        }, [filters, token]);
 
   return(
     <ScrollView style={{ flex: 1 }}>
@@ -67,26 +72,13 @@ export default function AllEventsScreen() {
             </ThemedText>
 
             <View style={styles.side}>
-                <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
+                <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
                     <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
-                  
+                    {hasActiveFilters && <View style={styles.filterDot} />}
                 </TouchableOpacity>
             </View>
 
         </ThemedView>
-
-    {showFilters && (
-        <View style={styles.filterContainer}>
-            <ThemedText style={styles.filterTitle}>Search Radius (miles):</ThemedText>
-            <View style={styles.radiusOptions}>
-                {RADIUS_OPTIONS.map(r => (
-                    <TouchableOpacity key={r} style={[styles.radiusBtn, radius === r && styles.radiusBtnActive]} onPress={() => setRadius(r)}>
-                        <ThemedText style={[styles.radiusBtnText, radius === r && styles.radiusBtnTextActive]}>{r}</ThemedText>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </View>
-    )}
 
         <View style={styles.container}>
         {loading ? <ThemedText>Loading events...</ThemedText> : null}
@@ -98,10 +90,16 @@ export default function AllEventsScreen() {
                     onClose={() => setSidebarOpen(false)}
             user={toSidebarUser(user)}
             />
+            <FilterModal
+                visible={filterModalOpen}
+                onClose={() => setFilterModalOpen(false)}
+                initial={filters}
+                onApply={setFilters}
+            />
          </View>
-        </ScrollView> 
+        </ScrollView>
         );
-}   
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -123,45 +121,21 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     side: {
-        width: 40, 
+        width: 40,
         alignItems: 'center',
         backgroundColor: 'transparent',
     },
     toggle: {
         opacity: 0.7,
 },
-filterContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-},
-filterTitle: {
-    fontSize: 16,
-    marginBottom: 10,
-    color: '#fff',
-},
-radiusOptions: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-},
-radiusBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#222',
-},
-radiusBtnActive: {
-    borderColor: '#59d386ff',
-    backgroundColor: '#59d386ff',
-},
-radiusBtnText: {
-    color: '#aaa',
-},
-radiusBtnTextActive: {
-    color: '#000',
-    fontWeight: 'bold',
+    filterDot: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#59d386ff',
     },
 
 

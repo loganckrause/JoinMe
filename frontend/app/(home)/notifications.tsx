@@ -38,6 +38,7 @@ export default function NotificationsScreen() {
     const fetchNotifications = useNotificationStore(s => s.fetchNotifications);
     const markRead = useNotificationStore(s => s.markRead);
     const markAllRead = useNotificationStore(s => s.markAllRead);
+    const respondToPoll = useNotificationStore(s => s.respondToPoll);
 
     useEffect(() => {
         fetchNotifications();
@@ -53,11 +54,32 @@ export default function NotificationsScreen() {
         }
     };
 
+    const handlePollResponse = (item: Notification, attended: boolean) => {
+        if (attended) {
+            respondToPoll(item.id, true);
+            if (item.event_id) {
+                router.push({ pathname: '/rate', params: { id: item.event_id } } as any);
+            }
+        } else {
+            respondToPoll(item.id, false);
+        }
+    };
+
     const renderItem = ({ item }: { item: Notification }) => (
         <TouchableOpacity style={styles.notificationRow} onPress={() => handleTap(item)}>
             <View style={[styles.dot, item.is_read && styles.dotHidden]} />
             <View style={styles.notificationContent}>
                 <ThemedText style={styles.notificationText}>{item.content}</ThemedText>
+                {item.notification_type === 'event_attendance_poll' && !item.is_read && (
+                    <View style={styles.pollContainer}>
+                        <TouchableOpacity style={styles.pollButtonYes} onPress={() => handlePollResponse(item, true)}>
+                            <ThemedText style={styles.pollButtonTextYes}>Yes</ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.pollButtonNo} onPress={() => handlePollResponse(item, false)}>
+                            <ThemedText style={styles.pollButtonTextNo}>No</ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                )}
                 <ThemedText style={styles.timeText}>
                     {formatTimeAgo(item.created_at)}
                 </ThemedText>
@@ -187,6 +209,31 @@ const styles = StyleSheet.create({
     notificationText: {
         fontSize: 15,
         lineHeight: 20,
+    },
+    pollContainer: {
+        flexDirection: 'row',
+        marginTop: 10,
+        gap: 12,
+    },
+    pollButtonYes: {
+        backgroundColor: '#59d386ff',
+        paddingVertical: 6,
+        paddingHorizontal: 20,
+        borderRadius: 6,
+    },
+    pollButtonNo: {
+        backgroundColor: '#dd3939ff',
+        paddingVertical: 6,
+        paddingHorizontal: 20,
+        borderRadius: 6,
+    },
+    pollButtonTextYes: {
+        color: '#0b0b0b',
+        fontWeight: '600',
+    },
+    pollButtonTextNo: {
+        color: '#ffffff',
+        fontWeight: '600',
     },
     timeText: {
         fontSize: 12,

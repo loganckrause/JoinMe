@@ -21,6 +21,7 @@ def get_user_rating_summary(session: Session, user_id: int) -> float:
 
     return round(float(avg_score), 1)
 
+
 class UserRatingCreatePayload(BaseModel):
     ratee_id: int
     score: int
@@ -81,15 +82,15 @@ async def create_user_rating(
         raise HTTPException(status_code=404, detail="User to rate not found")
 
     # Check if rating already exists
-    existing_rating = session.exec(
-        select(UserRating).where(
-            UserRating.rater_id == current_user.id,
-            UserRating.ratee_id == payload.ratee_id,
-        )
-    ).first()
+    # existing_rating = session.exec(
+    #     select(UserRating).where(
+    #         UserRating.rater_id == current_user.id,
+    #         UserRating.ratee_id == payload.ratee_id,
+    #     )
+    # ).first()
 
-    if existing_rating:
-        raise HTTPException(status_code=400, detail="You have already rated this user")
+    # if existing_rating:
+    #     raise HTTPException(status_code=400, detail="You have already rated this user")
 
     # Validate score
     if payload.score < 1 or payload.score > 5:

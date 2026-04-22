@@ -10,6 +10,7 @@ class NotificationType:
     EVENT_UPDATED = "event_updated"
     EVENT_CANCELLED = "event_cancelled"
     ATTENDANCE_JOINED = "attendance_joined"
+    EVENT_ATTENDANCE_POLL = "event_attendance_poll"
 
 
 def create_notification(
@@ -17,11 +18,13 @@ def create_notification(
     user_id: int,
     content: str,
     notification_type: str = "general",
+    event_id: int | None = None,
 ) -> Notification:
     notification = Notification(
         user_id=user_id,
         content=content,
         notification_type=notification_type,
+        event_id=event_id,
     )
     session.add(notification)
     return notification
@@ -32,6 +35,7 @@ def create_notifications_bulk(
     user_ids: list[int],
     content: str,
     notification_type: str = "general",
+    event_id: int | None = None,
 ) -> list[Notification]:
     notifications = []
     for user_id in user_ids:
@@ -39,6 +43,7 @@ def create_notifications_bulk(
             user_id=user_id,
             content=content,
             notification_type=notification_type,
+            event_id=event_id,
         )
         session.add(notification)
         notifications.append(notification)

@@ -9,7 +9,8 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
 import Sidebar from '@/components/ui/sidebar';
-import { fetchEvents, EventCard } from '@/services/events';
+import FilterModal from '@/components/ui/filter-modal';
+import { fetchEvents, EventCard, EventFilters } from '@/services/events';
 import { useAuthStore } from '@/store/auth';
 import { toSidebarUser } from '@/services/user';
 
@@ -19,10 +20,15 @@ export default function FeedScreen() {
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [showFilters, setShowFilters] = useState(false);
-    const [radius, setRadius] = useState<number>(50);
+    const [filterModalOpen, setFilterModalOpen] = useState(false);
+    const [filters, setFilters] = useState<EventFilters>({});
     const token = useAuthStore((state) => state.token);
-    const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
+
+    const hasActiveFilters =
+        filters.categoryId != null ||
+        !!filters.dateFrom ||
+        !!filters.dateTo ||
+        (filters.radius != null && filters.radius !== 50);
 
     useEffect(() => {
         let mounted = true;
@@ -31,7 +37,7 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                const events = await fetchEvents(radius, token);
+                const events = await fetchEvents(filters.radius || 50, token, filters);
                 if (mounted) {
                     setQueue(events);
                 }
@@ -51,7 +57,7 @@ export default function FeedScreen() {
         return () => {
             mounted = false;
         };
-    }, [radius, token]);
+    }, [filters, token]);
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -107,25 +113,13 @@ export default function FeedScreen() {
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
             <ThemedView style={styles.headerRight}>
-                <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
+                <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
                     <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
+                    {hasActiveFilters && <ThemedView style={styles.filterDot} />}
                 </TouchableOpacity>
                 <NotificationBell />
             </ThemedView>
             </ThemedView>
-
-        {showFilters && (
-            <ThemedView style={styles.filterContainer}>
-                <ThemedText style={styles.filterTitle}>Search Radius (miles):</ThemedText>
-                <ThemedView style={styles.radiusOptions}>
-                    {RADIUS_OPTIONS.map(r => (
-                        <TouchableOpacity key={r} style={[styles.radiusBtn, radius === r && styles.radiusBtnActive]} onPress={() => setRadius(r)}>
-                            <ThemedText style={[styles.radiusBtnText, radius === r && styles.radiusBtnTextActive]}>{r}</ThemedText>
-                        </TouchableOpacity>
-                    ))}
-                </ThemedView>
-            </ThemedView>
-        )}
 
             <ThemedView style={styles.container}>
 
@@ -196,6 +190,12 @@ export default function FeedScreen() {
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
                     user={toSidebarUser(user)}
+                />
+                <FilterModal
+                    visible={filterModalOpen}
+                    onClose={() => setFilterModalOpen(false)}
+                    initial={filters}
+                    onApply={setFilters}
                 />
             </ThemedView>
 
@@ -338,41 +338,13 @@ const styles = StyleSheet.create({
         gap: 15,
         backgroundColor: 'transparent',
     },
-    filterContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 15,
-        backgroundColor: 'transparent',
-        zIndex: 10,
-        width: '100%',
-    },
-    filterTitle: {
-        fontSize: 16,
-        marginBottom: 10,
-        color: '#fff',
-    },
-    radiusOptions: {
-        flexDirection: 'row',
-        gap: 10,
-        flexWrap: 'wrap',
-        backgroundColor: 'transparent',
-    },
-    radiusBtn: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#333',
-        backgroundColor: '#222',
-    },
-    radiusBtnActive: {
-        borderColor: '#59d386ff',
+    filterDot: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
         backgroundColor: '#59d386ff',
-    },
-    radiusBtnText: {
-        color: '#aaa',
-    },
-    radiusBtnTextActive: {
-        color: '#000',
-        fontWeight: 'bold',
     },
 });

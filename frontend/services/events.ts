@@ -81,10 +81,21 @@ export function mapBackendEventToCard(event: BackendEvent): EventCard {
   };
 }
 
-export async function fetchEvents(radius: number, token: string | null): Promise<EventCard[]> {
-  const events = await apiRequest<BackendEvent[]>(`/events/?radius=${radius}`, {
-    token,
-  });
+export type EventFilters = {
+  categoryId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  radius?: number;
+};
+
+export async function fetchEvents(radius: number, token: string | null, filters: EventFilters = {}): Promise<EventCard[]> {
+  const params = new URLSearchParams();
+  params.set('radius', String(radius));
+  if (filters.categoryId != null) params.set('category_id', String(filters.categoryId));
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom);
+  if (filters.dateTo) params.set('date_to', filters.dateTo);
+  const qs = params.toString();
+  const events = await apiRequest<BackendEvent[]>(`/events/?${qs}`, { token });
   return events.map(mapBackendEventToCard);
 }
 

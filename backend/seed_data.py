@@ -8,7 +8,7 @@ Usage: python seed_data.py
 import sys
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from sqlmodel import Session
+from sqlmodel import Session, delete
 
 # Add the project root to sys.path
 project_root = Path(__file__).resolve().parents[1]
@@ -38,12 +38,19 @@ def seed_data():
     create_db_and_tables()
 
     with Session(engine) as session:
-        # Clear existing data (optional - comment out to preserve data)
-        # session.exec(delete(UserPreference))
-        # session.exec(delete(Event))
-        # session.exec(delete(User))
-        # session.exec(delete(Category))
-        # session.commit()
+        # Clear existing data so the script can be safely run multiple times
+        print("Clearing old data...")
+        session.exec(delete(EventRating))
+        session.exec(delete(UserRating))
+        session.exec(delete(Attendance))
+        session.exec(delete(Notification))
+        session.exec(delete(Swipe))
+        session.exec(delete(EventChat))
+        session.exec(delete(UserPreference))
+        session.exec(delete(Event))
+        session.exec(delete(User))
+        session.exec(delete(Category))
+        session.commit()
 
         # Add Categories
         print("Adding categories...")
@@ -72,6 +79,7 @@ def seed_data():
                 password_hash=get_password_hash("password123"),
                 bio="Love sports and gaming",
                 age=25,
+                city="New York",
                 user_picture=b"",
             ),
             User(
@@ -80,6 +88,7 @@ def seed_data():
                 password_hash=get_password_hash("password123"),
                 bio="Fitness enthusiast and yogi",
                 age=28,
+                city="New York",
                 user_picture=b"",
             ),
             User(
@@ -88,6 +97,7 @@ def seed_data():
                 password_hash=get_password_hash("password123"),
                 bio="Music lover and tech geek",
                 age=30,
+                city="New York",
                 user_picture=b"",
             ),
             User(
@@ -96,6 +106,7 @@ def seed_data():
                 password_hash=get_password_hash("password123"),
                 bio="Artist and outdoor adventure seeker",
                 age=26,
+                city="New York",
                 user_picture=b"",
             ),
             User(
@@ -104,6 +115,7 @@ def seed_data():
                 password_hash=get_password_hash("password123"),
                 bio="Chef and food lover",
                 age=32,
+                city="New York",
                 user_picture=b"",
             ),
         ]
@@ -114,11 +126,26 @@ def seed_data():
         # Add User Preferences
         print("Adding user preferences...")
         preferences_data = [
-            (1, [1, 2, 6]),  # john_doe: Sports, Gaming, Technology
-            (2, [4, 8, 9]),  # jane_smith: Fitness, Outdoor, Social
-            (3, [3, 6, 9]),  # mike_jones: Music, Technology, Social
-            (4, [5, 8, 1]),  # sarah_williams: Art, Outdoor, Sports
-            (5, [7, 9, 10]),  # alex_brown: Cooking, Social, Learning
+            (
+                users[0].id,
+                [categories[0].id, categories[1].id, categories[5].id],
+            ),  # john_doe
+            (
+                users[1].id,
+                [categories[3].id, categories[7].id, categories[8].id],
+            ),  # jane_smith
+            (
+                users[2].id,
+                [categories[2].id, categories[5].id, categories[8].id],
+            ),  # mike_jones
+            (
+                users[3].id,
+                [categories[4].id, categories[7].id, categories[0].id],
+            ),  # sarah_williams
+            (
+                users[4].id,
+                [categories[6].id, categories[8].id, categories[9].id],
+            ),  # alex_brown
         ]
 
         for user_id, category_ids in preferences_data:
@@ -132,97 +159,121 @@ def seed_data():
         now = datetime.now(timezone.utc)
         events = [
             Event(
-                creator_id=1,
-                category_id=1,
+                creator_id=users[0].id,
+                category_id=categories[0].id,
                 title="Morning Jogging at Central Park",
                 description="Let's go for an early morning jog at Central Park. All fitness levels welcome!",
                 event_date=now + timedelta(days=3, hours=6),
                 max_capacity=20,
-                location="Central Park, New York",
+                street="Central Park West",
+                city="New York",
+                state="NY",
+                zip="10024",
                 latitude=40.7829,
                 longitude=-73.9654,
                 event_picture=b"",
             ),
             Event(
-                creator_id=2,
-                category_id=4,
+                creator_id=users[1].id,
+                category_id=categories[3].id,
                 title="Yoga and Meditation Session",
                 description="Join us for a relaxing yoga and meditation session. Bring your own mat!",
                 event_date=now + timedelta(days=2, hours=18),
                 max_capacity=15,
-                location="Zenith Yoga Studio",
+                street="123 Yoga Way",
+                city="New York",
+                state="NY",
+                zip="10001",
                 latitude=40.7580,
                 longitude=-73.9855,
                 event_picture=b"",
             ),
             Event(
-                creator_id=3,
-                category_id=3,
+                creator_id=users[2].id,
+                category_id=categories[2].id,
                 title="Live Jazz Night",
                 description="Come enjoy live jazz music with great company and refreshments.",
                 event_date=now + timedelta(days=5, hours=20),
                 max_capacity=50,
-                location="Blue Note Jazz Club",
+                street="131 W 3rd St",
+                city="New York",
+                state="NY",
+                zip="10012",
                 latitude=40.7308,
                 longitude=-74.0084,
                 event_picture=b"",
             ),
             Event(
-                creator_id=4,
-                category_id=5,
+                creator_id=users[3].id,
+                category_id=categories[4].id,
                 title="Art Painting Workshop",
                 description="Learn basic painting techniques. Materials provided. Beginners welcome!",
                 event_date=now + timedelta(days=4, hours=14),
                 max_capacity=25,
-                location="Creative Studio Downtown",
+                street="456 Art Ave",
+                city="New York",
+                state="NY",
+                zip="10013",
                 latitude=40.7128,
                 longitude=-74.0060,
                 event_picture=b"",
             ),
             Event(
-                creator_id=5,
-                category_id=7,
+                creator_id=users[4].id,
+                category_id=categories[6].id,
                 title="Culinary Workshop - Italian Pasta",
                 description="Learn to make authentic Italian pasta from scratch with Chef Alex.",
                 event_date=now + timedelta(days=6, hours=19),
                 max_capacity=12,
-                location="Downtown Cooking School",
+                street="789 Food St",
+                city="New York",
+                state="NY",
+                zip="10014",
                 latitude=40.7505,
                 longitude=-73.9972,
                 event_picture=b"",
             ),
             Event(
-                creator_id=1,
-                category_id=2,
+                creator_id=users[0].id,
+                category_id=categories[1].id,
                 title="Gaming Tournament - Mario Kart",
                 description="Competitive Mario Kart tournament. Prizes for top 3!",
                 event_date=now + timedelta(days=7, hours=19),
                 max_capacity=40,
-                location="Arcade Plus Gaming Center",
+                street="321 Game Blvd",
+                city="New York",
+                state="NY",
+                zip="10015",
                 latitude=40.7489,
                 longitude=-73.9680,
                 event_picture=b"",
             ),
             Event(
-                creator_id=2,
-                category_id=8,
+                creator_id=users[1].id,
+                category_id=categories[7].id,
                 title="Hiking Adventure - Trail Day",
                 description="Join us for an intermediate hiking trail. Bring water and snacks!",
                 event_date=now + timedelta(days=8, hours=7),
                 max_capacity=30,
-                location="Hudson Valley Trails",
+                street="1 Trail Rd",
+                city="Hudson Valley",
+                state="NY",
+                zip="12520",
                 latitude=41.8500,
                 longitude=-73.9500,
                 event_picture=b"",
             ),
             Event(
-                creator_id=3,
-                category_id=6,
+                creator_id=users[2].id,
+                category_id=categories[5].id,
                 title="Tech Meetup - Web Development",
                 description="Discussion on latest web development frameworks and tools.",
                 event_date=now + timedelta(days=9, hours=18),
                 max_capacity=60,
-                location="Tech Hub Conference Room",
+                street="987 Tech Park",
+                city="New York",
+                state="NY",
+                zip="10016",
                 latitude=40.7614,
                 longitude=-73.9776,
                 event_picture=b"",
@@ -233,6 +284,79 @@ def seed_data():
             session.add(event)
         session.commit()
 
+        # Add Test Attendance
+        print("Adding test attendance...")
+        attendances = [
+            Attendance(
+                user_id=users[1].id,
+                event_id=events[0].id,
+                did_attend=True,
+                prompted=True,
+            ),
+            Attendance(
+                user_id=users[2].id,
+                event_id=events[0].id,
+                did_attend=True,
+                prompted=True,
+            ),
+            Attendance(
+                user_id=users[3].id,
+                event_id=events[0].id,
+                did_attend=False,
+                prompted=True,
+            ),
+            Attendance(user_id=users[0].id, event_id=events[1].id),
+            Attendance(user_id=users[4].id, event_id=events[1].id),
+            Attendance(user_id=users[0].id, event_id=events[2].id),
+            Attendance(user_id=users[1].id, event_id=events[2].id),
+        ]
+        for att in attendances:
+            session.add(att)
+        session.commit()
+
+        # Add Test User Ratings
+        print("Adding test user ratings...")
+        user_ratings = [
+            UserRating(
+                rater_id=users[1].id,
+                ratee_id=users[0].id,
+                score=5,
+                comment="Great host!",
+            ),
+            UserRating(
+                rater_id=users[2].id, ratee_id=users[0].id, score=4, comment="Good jog."
+            ),
+            UserRating(
+                rater_id=None,
+                ratee_id=users[3].id,
+                score=1,
+                comment="Penalty for no-show at event",
+            ),
+        ]
+        for ur in user_ratings:
+            session.add(ur)
+        session.commit()
+
+        # Add Test Event Ratings
+        print("Adding test event ratings...")
+        event_ratings = [
+            EventRating(
+                user_id=users[1].id,
+                event_id=events[0].id,
+                score=5,
+                review="Loved the morning jog!",
+            ),
+            EventRating(
+                user_id=users[2].id,
+                event_id=events[0].id,
+                score=4,
+                review="Nice weather, good pace.",
+            ),
+        ]
+        for er in event_ratings:
+            session.add(er)
+        session.commit()
+
         print("✅ Database seeded successfully!")
         print(f"   - {len(categories)} categories added")
         print(f"   - {len(users)} test users added")
@@ -240,6 +364,9 @@ def seed_data():
             f"   - {sum(len(cats) for _, cats in preferences_data)} preferences added"
         )
         print(f"   - {len(events)} test events added")
+        print(f"   - {len(attendances)} attendances added")
+        print(f"   - {len(user_ratings)} user ratings added")
+        print(f"   - {len(event_ratings)} event ratings added")
 
 
 if __name__ == "__main__":
