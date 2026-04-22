@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.dependencies import get_current_user as get_auth_user
 from app.core.storage import upload_image_to_gcs, generate_signed_url
+from app.core.location import geocode_address
 from app.models.user import User
 from app.routers.user_ratings import get_user_rating_summary
 
@@ -15,6 +16,11 @@ class UserUpdatePayload(BaseModel):
     name: str | None = None
     bio: str | None = None
     age: int | None = None
+    city: str | None = None
+
+
+class UserRatingSummaryResponse(BaseModel):
+    rating_score: float
 
 
 class UserRatingSummaryResponse(BaseModel):
@@ -47,19 +53,28 @@ async def update_current_user(
     current_user: User = Depends(get_auth_user),
     session: Session = Depends(get_session),
 ):
+    print(f"Incoming Profile Update Payload: {payload}")
+
     if payload.name is not None:
         current_user.name = payload.name
     if payload.bio is not None:
         current_user.bio = payload.bio
     if payload.age is not None:
         current_user.age = payload.age
-        
+    if payload.city is not None and (
+        payload.city != current_user.city or current_user.latitude is None
+    ):
+        print(f"Attempting to geocode new city: {payload.city}")
+        current_user.city = payload.city
+        lat, lon = await geocode_address(payload.city)
+        if lat is not None and lon is not None:
+            current_user.latitude = lat
+            current_user.longitude = lon
+
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
     return current_user
-
-
 
 
 @router.get("/{userId}")

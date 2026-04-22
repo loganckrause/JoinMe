@@ -1,7 +1,6 @@
 import apiRequest from './api';
 
-const EVENT_IMAGE_FALLBACK =
-  'https://placehold.net/400x400.png';
+const EVENT_IMAGE_FALLBACK = 'https://placehold.net/400x400.png';
 
 export type BackendEvent = {
   id: number;
@@ -48,25 +47,39 @@ export type EventParticipants = {
   attendees: EventUser[];
 };
 
+export type EventFilters = {
+  categoryId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  radius?: number;
+};
+
+export type Category = {
+  id: number;
+  name: string;
+};
+
+export type CreateEventPayload = {
+  title: string;
+  description: string;
+  event_date: string;
+  max_capacity: number;
+  location: string;
+  latitude: number;
+  longitude: number;
+  category_id: number;
+  event_picture?: string | null;
+};
+
 function toImageUri(rawPicture?: string | null): string {
-  if (!rawPicture) {
-    return EVENT_IMAGE_FALLBACK;
-  }
-
-  if (rawPicture.startsWith('http://') || rawPicture.startsWith('https://')) {
-    return rawPicture;
-  }
-
-  if (rawPicture.startsWith('data:image/')) {
-    return rawPicture;
-  }
-
+  if (!rawPicture) return EVENT_IMAGE_FALLBACK;
+  if (rawPicture.startsWith('http://') || rawPicture.startsWith('https://')) return rawPicture;
+  if (rawPicture.startsWith('data:image/')) return rawPicture;
   return `data:image/jpeg;base64,${rawPicture}`;
 }
 
 export function mapBackendEventToCard(event: BackendEvent): EventCard {
   const categoryLabel = event.category_name?.trim() || `Category ${event.category_id}`;
-
   return {
     id: event.id,
     creatorId: event.creator_id,
@@ -84,19 +97,44 @@ export function mapBackendEventToCard(event: BackendEvent): EventCard {
   };
 }
 
-export async function fetchEvents(token?: string): Promise<EventCard[]> {
-  const events = await apiRequest<BackendEvent[]>('/events/', {
-    token,
-  });
+// RESOLVED: kept new signature with radius + filters, removed old token-only version
+export async function fetchEvents(radius: number, token: string | null, filters: EventFilters = {}): Promise<EventCard[]> {
+  const params = new URLSearchParams();
+  params.set('radius', String(radius));
+  if (filters.categoryId != null) params.set('category_id', String(filters.categoryId));
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom);
+  if (filters.dateTo) params.set('date_to', filters.dateTo);
+  const qs = params.toString();
+  const events = await apiRequest<BackendEvent[]>(`/events/?${qs}`, { token });
   return events.map(mapBackendEventToCard);
 }
 
 export async function fetchEvent(eventId: number, token?: string): Promise<EventCard> {
-  const event = await apiRequest<BackendEvent>(`/events/${eventId}`, {
-    token,
-  });
-
+  const event = await apiRequest<BackendEvent>(`/events/${eventId}`, { token });
   return mapBackendEventToCard(event);
+}
+
+// RESOLVED: kept the /events/me/events version (matches backend route), removed duplicate /swipes/accepted version
+export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>('/events/me/events', { token });
+  return events.map(mapBackendEventToCard);
+}
+
+export async function fetchEventsHosted(token?: string): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>('/events/hosted', { token });
+  return events.map(mapBackendEventToCard);
+}
+
+export async function createEvent(payload: CreateEventPayload, token: string | null): Promise<BackendEvent> {
+  return apiRequest<BackendEvent>('/events/', {
+    token: token ?? undefined,
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchCategories(): Promise<Category[]> {
+  return apiRequest<Category[]>('/categories/');
 }
 
 export async function recordSwipe(eventId: number, status: boolean, token?: string): Promise<void> {
@@ -113,18 +151,8 @@ export async function deleteEvent(eventId: number, token?: string): Promise<void
   });
 }
 
-export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> {
-  const events = await apiRequest<BackendEvent[]>('/swipes/accepted', {
-    token,
-  });
-  return events.map((event) => ({
-    ...mapBackendEventToCard(event),
-    isAccepted: true,
-  }));
-}
-
 export function getUserImageUri(user: EventUser | null): string {
-    return toImageUri(user?.user_picture);
+  return toImageUri(user?.user_picture);
 }
 
 export async function fetchEventParticipants(eventId: number, creatorId: number): Promise<EventParticipants> {
@@ -132,9 +160,5 @@ export async function fetchEventParticipants(eventId: number, creatorId: number)
     apiRequest<EventUser>(`/users/${creatorId}`),
     apiRequest<EventUser[]>(`/events/${eventId}/attendees`),
   ]);
-
-  return {
-    organizer,
-    attendees,
-  };
+  return { organizer, attendees };
 }

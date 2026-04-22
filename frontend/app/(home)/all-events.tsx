@@ -4,114 +4,124 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
+import FilterModal from "@/components/ui/filter-modal";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { fetchEvents, EventCard } from "@/services/events";
+import { fetchEvents, EventCard, EventFilters } from "@/services/events";
 import { useAuthStore } from "@/store/auth";
 import { toSidebarUser } from "@/services/user";
 
 export default function AllEventsScreen() {
-        const [sidebarOpen, setSidebarOpen] = useState(false);
-        const [events, setEvents] = useState<EventCard[]>([]);
-        const [loading, setLoading] = useState(true);
-        const [refreshing, setRefreshing] = useState(false);
-        const [error, setError] = useState<string | null>(null);
-        const user = useAuthStore((state) => state.user);
-        const token = useAuthStore((state) => state.token);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [filterModalOpen, setFilterModalOpen] = useState(false);
+    const [filters, setFilters] = useState<EventFilters>({});
+    const [events, setEvents] = useState<EventCard[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const user = useAuthStore((state) => state.user);
+    const token = useAuthStore((state) => state.token);
 
-        useEffect(() => {
-            let mounted = true;
+    // RESOLVED: kept hasActiveFilters from main
+    const hasActiveFilters =
+        filters.categoryId != null ||
+        !!filters.dateFrom ||
+        !!filters.dateTo ||
+        (filters.radius != null && filters.radius !== 50);
 
-            const loadEvents = async () => {
-                try {
-                    setLoading(true);
-                    setError(null);
-                    const fetchedEvents = await fetchEvents(token ?? undefined);
-                    if (mounted) {
-                        setEvents(fetchedEvents);
-                    }
-                } catch (loadError) {
-                    if (mounted) {
-                        setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
-                    }
-                } finally {
-                    if (mounted) {
-                        setLoading(false);
-                    }
-                }
-            };
+    useEffect(() => {
+        let mounted = true;
 
-            loadEvents();
-
-            return () => {
-                mounted = false;
-            };
-        }, [token]);
-
-        const onRefresh = useCallback(async () => {
-            setRefreshing(true);
+        const loadEvents = async () => {
             try {
-                const fetchedEvents = await fetchEvents(token ?? undefined);
-                setEvents(fetchedEvents);
+                setLoading(true);
                 setError(null);
+                // RESOLVED: kept new signature with radius + filters (main)
+                const fetchedEvents = await fetchEvents(filters.radius || 50, token, filters);
+                if (mounted) setEvents(fetchedEvents);
             } catch (loadError) {
-                setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
+                if (mounted) {
+                    setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
+                }
             } finally {
-                setRefreshing(false);
+                if (mounted) setLoading(false);
             }
-        }, [token]);
+        };
 
-  return(
-    <ScrollView
-        style={{ flex: 1 }}
-        refreshControl={
-            <RefreshControl refreshing={refreshing || loading} onRefresh={onRefresh} tintColor="#59d386ff" />
+        loadEvents();
+        return () => { mounted = false; };
+    // RESOLVED: kept [filters, token] so filter changes trigger a reload
+    }, [filters, token]);
+
+    // RESOLVED: kept onRefresh from HEAD, updated fetchEvents call to new signature
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            const fetchedEvents = await fetchEvents(filters.radius || 50, token, filters);
+            setEvents(fetchedEvents);
+            setError(null);
+        } catch (loadError) {
+            setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
+        } finally {
+            setRefreshing(false);
         }
-    >
-    
-        <ThemedView style={styles.topBar}>
-    
-            <View style={styles.side}>
-                <TouchableOpacity onPress={() => setSidebarOpen(true)}>
-                    <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
-                </TouchableOpacity>
-            </View>
+    }, [filters, token]);
 
-            <ThemedText style={styles.title}>
-                All Events
-            </ThemedText>
+    return (
+        <ScrollView
+            style={{ flex: 1 }}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing || loading}
+                    onRefresh={onRefresh}
+                    tintColor="#59d386ff"
+                />
+            }
+        >
+            <ThemedView style={styles.topBar}>
+                <View style={styles.side}>
+                    <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+                        <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
+                    </TouchableOpacity>
+                </View>
 
-            <View style={styles.side}>
-                <TouchableOpacity>
-                    <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
-                  
-                </TouchableOpacity>
-            </View>
+                <ThemedText style={styles.title}>All Events</ThemedText>
 
-        </ThemedView>
+                <View style={styles.side}>
+                    <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
+                        <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
+                        {hasActiveFilters && <View style={styles.filterDot} />}
+                    </TouchableOpacity>
+                </View>
+            </ThemedView>
 
-        <View style={styles.container}>
-        {loading ? <ThemedText>Loading events...</ThemedText> : null}
-        {!loading && error ? <ThemedText>{error}</ThemedText> : null}
-        {!loading && !error && events.length === 0 ? <ThemedText>No events found.</ThemedText> : null}
-            <EventList events={events} />
-            <Sidebar
+            <View style={styles.container}>
+                {loading ? <ThemedText>Loading events...</ThemedText> : null}
+                {!loading && error ? <ThemedText>{error}</ThemedText> : null}
+                {!loading && !error && events.length === 0 ? <ThemedText>No events found.</ThemedText> : null}
+                <EventList events={events} />
+                <Sidebar
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
-            user={toSidebarUser(user)}
-            />
-         </View>
-        </ScrollView> 
-        );
-}   
+                    user={toSidebarUser(user)}
+                />
+                <FilterModal
+                    visible={filterModalOpen}
+                    onClose={() => setFilterModalOpen(false)}
+                    initial={filters}
+                    onApply={setFilters}
+                />
+            </View>
+        </ScrollView>
+    );
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#transparent",
-    paddingHorizontal: 20,
-  },
-  topBar: {
+    container: {
+        flex: 1,
+        paddingHorizontal: 20,
+    },
+    topBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -125,13 +135,17 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     side: {
-        width: 40, 
+        width: 40,
         alignItems: 'center',
         backgroundColor: 'transparent',
     },
-    toggle: {
-        opacity: 0.7,
+    filterDot: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#59d386ff',
     },
-
-
 });

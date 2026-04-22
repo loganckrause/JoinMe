@@ -17,6 +17,7 @@ from app.routers import (
     preferences,
     user_ratings,
     event_ratings,
+    attendance_cron,
 )
 
 
@@ -50,6 +51,7 @@ app.include_router(users.router)
 app.include_router(preferences.router)
 app.include_router(user_ratings.router)
 app.include_router(event_ratings.router)
+app.include_router(attendance_cron.router)
 
 # https://fastapi.tiangolo.com/tutorial/first-steps/
 

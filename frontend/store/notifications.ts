@@ -6,6 +6,7 @@ import {
     fetchUnreadCount as apiFetchUnreadCount,
     markNotificationRead,
     markAllNotificationsRead,
+    respondToAttendancePoll,
 } from '@/services/notifications';
 import { useAuthStore } from './auth';
 
@@ -18,6 +19,7 @@ type NotificationStore = {
     fetchUnreadCount: () => Promise<void>;
     markRead: (id: number) => Promise<void>;
     markAllRead: () => Promise<void>;
+    respondToPoll: (id: number, attended: boolean) => Promise<void>;
     reset: () => void;
 };
 
@@ -90,6 +92,27 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
         } catch {
             // Revert on failure
             set({ notifications: prev, unreadCount: prev.filter(n => !n.is_read).length });
+        }
+    },
+
+    respondToPoll: async (id: number, attended: boolean) => {
+        const token = useAuthStore.getState().token;
+        if (!token) return;
+
+        // Optimistic update
+        const prev = get().notifications;
+        set({
+            notifications: prev.map(n =>
+                n.id === id ? { ...n, is_read: true } : n,
+            ),
+            unreadCount: Math.max(0, get().unreadCount - 1),
+        });
+
+        try {
+            await respondToAttendancePoll(token, id, attended);
+        } catch {
+            // Revert on failure
+            set({ notifications: prev, unreadCount: get().unreadCount + 1 });
         }
     },
 

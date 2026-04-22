@@ -113,6 +113,13 @@ export default function UserProfile() {
     };
   }, [parsedUserId, setUser, token]);
 
+  // Keep the displayed profile in sync with global state if it's the current user
+  useEffect(() => {
+    if (authUser && profileUser?.id === authUser.id) {
+      setProfileUser(authUser);
+    }
+  }, [authUser, profileUser?.id]);
+
   return (
     <ScrollView style={{ flex: 1 , paddingHorizontal: 20}}>
       <View style={styles.topBar}>
@@ -179,7 +186,7 @@ export default function UserProfile() {
           </TouchableOpacity>
         ) : null}
 
-        <TouchableOpacity style={styles.outlineBtn}>
+        <TouchableOpacity style={styles.outlineBtn} onPress={() => router.push('/createdevents')}>
           <Text style={styles.outlineText}>See events</Text>
         </TouchableOpacity>
       </View>

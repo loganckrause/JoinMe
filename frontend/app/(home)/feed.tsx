@@ -9,17 +9,27 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
 import Sidebar from '@/components/ui/sidebar';
-import { fetchEvents, EventCard, recordSwipe } from '@/services/events';
+// RESOLVED: kept both recordSwipe (HEAD) and FilterModal + EventFilters (main)
+import FilterModal from '@/components/ui/filter-modal';
+import { fetchEvents, EventCard, EventFilters, recordSwipe } from '@/services/events';
 import { useAuthStore } from '@/store/auth';
 import { toSidebarUser } from '@/services/user';
 
 
 export default function FeedScreen() {
-    // Queue of unseen events. When empty, show the empty state.
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // RESOLVED: kept both filterModal state (main) and token (HEAD)
+    const [filterModalOpen, setFilterModalOpen] = useState(false);
+    const [filters, setFilters] = useState<EventFilters>({});
     const token = useAuthStore((state) => state.token);
+
+    const hasActiveFilters =
+        filters.categoryId != null ||
+        !!filters.dateFrom ||
+        !!filters.dateTo ||
+        (filters.radius != null && filters.radius !== 50);
 
     useEffect(() => {
         let mounted = true;
@@ -28,27 +38,22 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                const events = await fetchEvents(token ?? undefined);
-                if (mounted) {
-                    setQueue(events);
-                }
+                // RESOLVED: kept new signature with radius + filters (main)
+                const events = await fetchEvents(filters.radius || 50, token, filters);
+                if (mounted) setQueue(events);
             } catch (loadError) {
                 if (mounted) {
                     setError(loadError instanceof Error ? loadError.message : 'Failed to load events');
                 }
             } finally {
-                if (mounted) {
-                    setLoading(false);
-                }
+                if (mounted) setLoading(false);
             }
         };
 
         loadEvents();
-
-        return () => {
-            mounted = false;
-        };
-    }, [token]);
+        return () => { mounted = false; };
+    // RESOLVED: kept [filters, token] dependency array (main) so filters trigger reload
+    }, [filters, token]);
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -59,25 +64,23 @@ export default function FeedScreen() {
     const nextEvent = queue[1] ?? null;
     const isEmpty = !loading && queue.length === 0;
 
-    // Removes the top card from the queue
-    const dismissTop = () => {
-        setQueue(prev => prev.slice(1));
+    useEffect(() => {
         translateX.value = 0;
         translateY.value = 0;
+    }, [currentEvent?.id]);
+
+    const dismissTop = () => {
+        setQueue(prev => prev.slice(1));
     };
 
     const handleSwipeDecision = async (status: boolean) => {
-        if (!currentEvent) {
-            return;
-        }
-
+        if (!currentEvent) return;
         try {
             await recordSwipe(currentEvent.id, status, token ?? undefined);
         } catch (swipeError) {
             setError(swipeError instanceof Error ? swipeError.message : 'Failed to record swipe');
             return;
         }
-
         dismissTop();
     };
 
@@ -119,7 +122,13 @@ export default function FeedScreen() {
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
-                <NotificationBell />
+                <ThemedView style={styles.headerRight}>
+                    <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
+                        <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
+                        {hasActiveFilters && <ThemedView style={styles.filterDot} />}
+                    </TouchableOpacity>
+                    <NotificationBell />
+                </ThemedView>
             </ThemedView>
 
             <ThemedView style={styles.container}>
@@ -133,14 +142,12 @@ export default function FeedScreen() {
                         <ThemedText style={styles.emptyTitle}>{error}</ThemedText>
                     </ThemedView>
                 ) : isEmpty ? (
-                    /*  Empty state: */
                     <ThemedView style={styles.emptyState}>
                         <ThemedText style={styles.emptyTitle}>No new events</ThemedText>
                         <ThemedText style={styles.emptyTitle}>Come back later</ThemedText>
                     </ThemedView>
                 ) : (
                     <>
-                        {/* Ghost card underneath showing the next event */}
                         {nextEvent && (
                             <ThemedView style={styles.eventCard}>
                                 <Image source={{ uri: nextEvent.image }} style={styles.eventImage} />
@@ -155,7 +162,6 @@ export default function FeedScreen() {
                             </ThemedView>
                         )}
 
-                        {/* Swipeable top card */}
                         <GestureDetector gesture={panGesture}>
                             <TouchableOpacity
                                 activeOpacity={0.9}
@@ -175,7 +181,6 @@ export default function FeedScreen() {
                             </TouchableOpacity>
                         </GestureDetector>
 
-                        {/* Yes / No buttons — only shown when there are events */}
                         <ThemedView style={styles.buttrow}>
                             <TouchableOpacity style={styles.nobutt} onPress={() => handleSwipeDecision(false)}>
                                 <ThemedText style={styles.nobuttText}>✕</ThemedText>
@@ -191,6 +196,12 @@ export default function FeedScreen() {
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
                     user={toSidebarUser(user)}
+                />
+                <FilterModal
+                    visible={filterModalOpen}
+                    onClose={() => setFilterModalOpen(false)}
+                    initial={filters}
+                    onApply={setFilters}
                 />
             </ThemedView>
 
@@ -220,7 +231,22 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
         height: 150,
     },
-
+    // RESOLVED: kept headerRight and filterDot from location branch
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+        backgroundColor: 'transparent',
+    },
+    filterDot: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#59d386ff',
+    },
     eventCard: {
         position: 'absolute',
         borderColor: '#fff',
@@ -232,7 +258,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#0f0f0f',
         alignSelf: 'center',
     },
-
     emptyState: {
         justifyContent: 'center',
         gap: 16,
@@ -264,7 +289,6 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         paddingRight: 12,
         backgroundColor: 'transparent',
-
     },
     peopleWrap: {
         paddingTop: 20,
@@ -282,13 +306,12 @@ const styles = StyleSheet.create({
         fontSize: 20,
         backgroundColor: 'transparent',
     },
-
     buttrow: {
         flexDirection: 'row',
         gap: 140,
         backgroundColor: 'transparent',
-        paddingBottom: 60,},
-    
+        paddingBottom: 60,
+    },
     nobutt: {
         borderColor: '#dd3939ff',
         borderWidth: 1,
@@ -319,7 +342,6 @@ const styles = StyleSheet.create({
         padding: 10,
         bottom: -3,
     },
-
     emptyTitle: {
         justifyContent: 'center',
         fontSize: 24,

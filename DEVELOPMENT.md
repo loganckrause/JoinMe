@@ -52,15 +52,17 @@ cd /home/logank/school/capstone/project/frontend
 cp .env.example .env.local
 ```
 
-Then edit `frontend/.env.local` and set:
+### Option A: Local Development (Local Containers)
+
+If you are running the backend locally via Docker Compose, edit `frontend/.env.local` and set the URL to your local machine:
 
 ```dotenv
 EXPO_PUBLIC_API_URL=http://<YOUR_MACHINE_IP>:8000
 ```
 
-### Expo Go note
+#### Expo Go note
 
-For Expo Go on a physical iPhone, do not use `localhost`.
+For Expo Go on a physical iPhone/Android, **do not** use `localhost`.
 Use your computer's local network IP address instead, for example:
 
 ```dotenv
@@ -68,6 +70,17 @@ EXPO_PUBLIC_API_URL=http://192.168.1.175:8000
 ```
 
 Make sure your phone is on the same Wi-Fi network as your computer.
+
+### Option B: Connect to Cloud Run API (Cloud Backend)
+
+To connect the frontend directly to the deployed Cloud Run API instead of your local backend, edit `frontend/.env.local` and set the URL to the Cloud Run service URL:
+
+```dotenv
+EXPO_PUBLIC_API_URL=https://<YOUR_CLOUD_RUN_SERVICE_URL>
+```
+*(Replace `<YOUR_CLOUD_RUN_SERVICE_URL>` with the actual Cloud Run URL, e.g., `https://api-service-xyz.a.run.app`)*
+
+This option is ideal if you only want to work on frontend features and do not want to spin up the local Docker environment.
 
 ## 4. Run the frontend
 

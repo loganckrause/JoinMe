@@ -62,6 +62,7 @@ type AuthStore = {
         fullName: string;
         age: number;
         bio: string;
+        city: string;
         categoryIds: number[];
         imageUri: string;
     }) => Promise<void>;
@@ -150,7 +151,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
     },
 
-    register: async ({ email, password, fullName, age, bio, categoryIds, imageUri }) => {
+    register: async ({ email, password, fullName, age, bio, city, categoryIds, imageUri }) => {
         try {
             console.log('Registering with API URL:', API_URL);
 
@@ -164,6 +165,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
             formData.append('full_name', fullName.trim());
             formData.append('age', String(age));
             formData.append('bio', bio.trim());
+            formData.append('city', city.trim());
             formData.append('category_ids', JSON.stringify(categoryIds));
             formData.append('profile_picture', {
                 uri: imageUri,
