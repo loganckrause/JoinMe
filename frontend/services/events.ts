@@ -46,6 +46,11 @@ export type EventParticipants = {
   attendees: EventUser[];
 };
 
+export type Category = {
+  id: number;
+  name: string;
+};
+
 function toImageUri(rawPicture?: string | null): string {
   if (!rawPicture) {
     return EVENT_IMAGE_FALLBACK;
@@ -81,6 +86,22 @@ export function mapBackendEventToCard(event: BackendEvent): EventCard {
   };
 }
 
+export async function createEvent(payload: BackendEvent, token: string): Promise<EventCard> {
+  const createdEvent = await apiRequest<BackendEvent>('/events/', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(payload),
+  });
+  return mapBackendEventToCard(createdEvent);
+}
+
+export async function fetchCategories(): Promise<Category[]> {
+  const res = await apiRequest<Category[]>('/categories/');
+  console.log('Fetched categories:', res);
+  return res;
+  //return await apiRequest<Category[]>('/categories/');
+}
+
 export async function fetchEvents(): Promise<EventCard[]> {
   const events = await apiRequest<BackendEvent[]>('/events/');
   return events.map(mapBackendEventToCard);
@@ -108,4 +129,11 @@ export async function fetchEventParticipants(eventId: number, creatorId: number)
     organizer,
     attendees,
   };
+}
+
+export async function fetchEventsHosted(token?: string): Promise<EventCard[]> {
+  const events = await apiRequest<BackendEvent[]>('/events/hosted', {
+    token,
+  });
+  return events.map(mapBackendEventToCard);
 }
