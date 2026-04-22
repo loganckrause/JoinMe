@@ -15,12 +15,12 @@ export type ProfileData = {
 
 export async function fetchCurrentUser(token: string): Promise<AppUser> {
   const user = await apiRequest<BackendUser>('/users/me', { token });
-  return mapBackendUserToAppUser(user);
+  return { ...mapBackendUserToAppUser(user), city: (user as any).city, latitude: (user as any).latitude, longitude: (user as any).longitude } as AppUser;
 }
 
 export async function fetchUserById(userId: number): Promise<AppUser> {
   const user = await apiRequest<BackendUser>(`/users/${userId}`);
-  return mapBackendUserToAppUser(user);
+  return { ...mapBackendUserToAppUser(user), city: (user as any).city, latitude: (user as any).latitude, longitude: (user as any).longitude } as AppUser;
 }
 
 export async function fetchMyInterests(token: string): Promise<string[]> {
@@ -51,14 +51,14 @@ export async function fetchProfileData(token: string): Promise<ProfileData> {
 
 export async function updateProfile(
   token: string,
-  data: { name?: string; bio?: string; age?: number }
+  data: { name?: string; bio?: string; age?: number; city?: string }
 ): Promise<AppUser> {
   const updatedUser = await apiRequest<BackendUser>('/users/me', {
     method: 'PATCH',
     token,
     body: JSON.stringify(data),
   });
-  return mapBackendUserToAppUser(updatedUser);
+  return { ...mapBackendUserToAppUser(updatedUser), city: (updatedUser as any).city, latitude: (updatedUser as any).latitude, longitude: (updatedUser as any).longitude } as AppUser;
 }
 
 export async function uploadProfilePicture(token: string, imageUri: string): Promise<{ message: string, url: string }> {

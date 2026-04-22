@@ -3,6 +3,7 @@ import { apiRequest } from './api';
 export interface Notification {
     id: number;
     user_id: number;
+    event_id?: number | null;
     content: string;
     is_read: boolean;
     notification_type: string;
@@ -46,4 +47,15 @@ export async function markAllNotificationsRead(
         { method: 'POST', token },
     );
     return data.marked_read;
+}
+
+export async function respondToAttendancePoll(
+    token: string,
+    id: number,
+    attended: boolean,
+): Promise<void> {
+    await apiRequest(`/notifications/${id}/respond?attended=${attended}`, {
+        method: 'POST',
+        token,
+    });
 }

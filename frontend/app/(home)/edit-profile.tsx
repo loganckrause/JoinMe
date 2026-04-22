@@ -26,6 +26,7 @@ export default function EditProfile() {
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [age, setAge] = useState(user?.age ? String(user.age) : '');
+  const [city, setCity] = useState(user?.city || '');
   const [photoUri, setPhotoUri] = useState(user?.photoUri || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export default function EditProfile() {
         name: name.trim() || undefined,
         bio: bio.trim() || undefined,
         age: parsedAge,
+        city: city.trim() || undefined,
       });
       
       const updatedUser = await fetchCurrentUser(token);
@@ -126,6 +128,15 @@ export default function EditProfile() {
           placeholder="Enter your age"
           placeholderTextColor="#888"
           keyboardType="numeric"
+        />
+
+        <Text style={styles.label}>City</Text>
+        <TextInput
+          style={styles.input}
+          value={city}
+          onChangeText={setCity}
+          placeholder="Enter your city"
+          placeholderTextColor="#888"
         />
 
         <TouchableOpacity

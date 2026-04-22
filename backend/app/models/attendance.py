@@ -12,3 +12,5 @@ class Attendance(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc)
     )
     check_in_time: datetime | None = Field(default=None)
+    did_attend: bool | None = Field(default=None)
+    prompted: bool = Field(default=False)

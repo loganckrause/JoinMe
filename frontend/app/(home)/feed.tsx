@@ -9,7 +9,8 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationBell } from '@/components/notification-bell';
 import Sidebar from '@/components/ui/sidebar';
-import { fetchEvents, EventCard } from '@/services/events';
+import FilterModal from '@/components/ui/filter-modal';
+import { fetchEvents, EventCard, EventFilters } from '@/services/events';
 import { useAuthStore } from '@/store/auth';
 import { toSidebarUser } from '@/services/user';
 
@@ -19,6 +20,15 @@ export default function FeedScreen() {
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [filterModalOpen, setFilterModalOpen] = useState(false);
+    const [filters, setFilters] = useState<EventFilters>({});
+    const token = useAuthStore((state) => state.token);
+
+    const hasActiveFilters =
+        filters.categoryId != null ||
+        !!filters.dateFrom ||
+        !!filters.dateTo ||
+        (filters.radius != null && filters.radius !== 50);
 
     useEffect(() => {
         let mounted = true;
@@ -27,7 +37,7 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                const events = await fetchEvents();
+                const events = await fetchEvents(filters.radius || 50, token, filters);
                 if (mounted) {
                     setQueue(events);
                 }
@@ -47,7 +57,7 @@ export default function FeedScreen() {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, [filters, token]);
 
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -105,7 +115,13 @@ export default function FeedScreen() {
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
                 <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
+            <ThemedView style={styles.headerRight}>
+                <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
+                    <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
+                    {hasActiveFilters && <ThemedView style={styles.filterDot} />}
+                </TouchableOpacity>
                 <NotificationBell />
+            </ThemedView>
             </ThemedView>
 
             <ThemedView style={styles.container}>
@@ -177,6 +193,12 @@ export default function FeedScreen() {
                     visible={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
                     user={toSidebarUser(user)}
+                />
+                <FilterModal
+                    visible={filterModalOpen}
+                    onClose={() => setFilterModalOpen(false)}
+                    initial={filters}
+                    onApply={setFilters}
                 />
             </ThemedView>
 
@@ -313,4 +335,23 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontFamily: 'Inter-Light',
     },
+<<<<<<< location
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+        backgroundColor: 'transparent',
+    },
+    filterDot: {
+        position: 'absolute',
+        top: -2,
+        right: -2,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#59d386ff',
+    },
 });
+=======
+});
+>>>>>>> main
