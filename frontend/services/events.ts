@@ -44,6 +44,7 @@ export type EventUser = {
   age?: number | null;
   bio?: string | null;
   user_picture?: string | null;
+  photoUri?: string | null;
 };
 
 export type EventParticipants = {
@@ -114,7 +115,7 @@ export async function fetchEvents(radius: number, token: string | null, filters:
   if (filters.dateFrom) params.set('date_from', filters.dateFrom);
   if (filters.dateTo) params.set('date_to', filters.dateTo);
   const qs = params.toString();
-  const events = await apiRequest<BackendEvent[]>(`/events/?${qs}`, { token });
+  const events = await apiRequest<BackendEvent[]>(`/events/?${qs}`, { token: token ?? undefined });
   return events.map(mapBackendEventToCard);
 }
 
@@ -189,7 +190,7 @@ export async function deleteEvent(eventId: number, token?: string): Promise<void
 }
 
 export function getUserImageUri(user: EventUser | null): string {
-  return toImageUri(user?.user_picture);
+  return toImageUri(user?.user_picture || user?.photoUri);
 }
 
 export async function fetchEventParticipants(eventId: number, creatorId: number): Promise<EventParticipants> {
