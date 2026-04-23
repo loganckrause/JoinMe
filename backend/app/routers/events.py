@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -230,6 +230,7 @@ async def create_new_event(
 async def update_event(
     eventId: int,
     payload: EventUpdatePayload,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -265,6 +266,7 @@ async def update_event(
             attendee_ids,
             f'"{event.title}" has been updated — check the new details.',
             NotificationType.EVENT_UPDATED,
+            background_tasks=background_tasks,
         )
 
     session.commit()
@@ -275,6 +277,7 @@ async def update_event(
 @router.delete("/{eventId}")
 async def delete_event(
     eventId: int,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -293,6 +296,7 @@ async def delete_event(
             attendee_ids,
             f'"{event_title}" has been cancelled.',
             NotificationType.EVENT_CANCELLED,
+            background_tasks=background_tasks,
         )
 
     session.exec(sql_delete(EventChat).where(EventChat.event_id == eventId))
@@ -335,6 +339,7 @@ async def get_event_attendees(eventId: int, session: Session = Depends(get_sessi
 @router.post("/{eventId}/attend")
 async def attend_event(
     eventId: int,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -360,6 +365,7 @@ async def attend_event(
             event.creator_id,
             f'{current_user.name} joined your event "{event.title}".',
             NotificationType.ATTENDANCE_JOINED,
+            background_tasks=background_tasks,
         )
 
     session.commit()
@@ -370,6 +376,7 @@ async def attend_event(
 @router.delete("/{eventId}/attend")
 async def leave_event(
     eventId: int,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -383,6 +390,17 @@ async def leave_event(
         raise HTTPException(status_code=404, detail="Not attending this event")
 
     session.delete(attendance)
+
+    event = session.get(Event, eventId)
+    if event and event.creator_id != current_user.id:
+        create_notification(
+            session,
+            event.creator_id,
+            f'{current_user.name} left your event "{event.title}".',
+            NotificationType.ATTENDANCE_LEFT,
+            background_tasks=background_tasks,
+        )
+
     session.commit()
     return {"message": "Left event successfully"}
 

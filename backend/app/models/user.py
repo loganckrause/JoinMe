@@ -18,6 +18,7 @@ class User(SQLModel, table=True):
     latitude: float | None = Field(default=None)
     longitude: float | None = Field(default=None)
     user_picture: str | None = Field(default=None)
+    expo_push_token: str | None = Field(default=None)
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
