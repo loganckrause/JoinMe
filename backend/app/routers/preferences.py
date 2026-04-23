@@ -5,11 +5,29 @@ from sqlmodel import Session, select
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.notifications import MASTER_PREF_KEY, NotificationType
 from app.models.user import User
 from app.models.user_preference import UserPreference
+from app.models.notification_preference import NotificationPreference
 from app.models.category import Category
 
 router = APIRouter(prefix="/preferences", tags=["preferences"])
+
+# NotificationType values that the UI exposes (welcome is hidden — it's a one-shot)
+NOTIFICATION_TYPES_UI = [
+    NotificationType.EVENT_UPDATED,
+    NotificationType.EVENT_CANCELLED,
+    NotificationType.ATTENDANCE_JOINED,
+    NotificationType.ATTENDANCE_LEFT,
+    NotificationType.USER_RATED,
+    NotificationType.EVENT_RATED,
+]
+
+
+class NotificationPreferenceUpdate(BaseModel):
+    notification_type: str
+    in_app_enabled: Optional[bool] = None
+    push_enabled: Optional[bool] = None
 
 
 class PreferenceCreatePayload(BaseModel):
@@ -133,6 +151,89 @@ async def remove_preference(
     session.commit()
 
     return {"message": "Preference removed successfully"}
+
+
+@router.get("/notifications")
+async def get_notification_preferences(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Get notification delivery preferences for the current user."""
+    rows = session.exec(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == current_user.id
+        )
+    ).all()
+    by_type = {row.notification_type: row for row in rows}
+
+    master_row = by_type.get(MASTER_PREF_KEY)
+    master = {
+        "in_app_enabled": master_row.in_app_enabled if master_row else True,
+        "push_enabled": master_row.push_enabled if master_row else True,
+    }
+
+    per_type = []
+    for nt in NOTIFICATION_TYPES_UI:
+        row = by_type.get(nt)
+        per_type.append({
+            "notification_type": nt,
+            "in_app_enabled": row.in_app_enabled if row else True,
+            "push_enabled": row.push_enabled if row else True,
+        })
+
+    return {"master": master, "per_type": per_type}
+
+
+@router.patch("/notifications")
+async def update_notification_preference(
+    payload: NotificationPreferenceUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Upsert a single notification preference row for the current user."""
+    nt = payload.notification_type
+    if nt != MASTER_PREF_KEY and nt not in NOTIFICATION_TYPES_UI:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid notification_type: {nt}",
+        )
+
+    if payload.in_app_enabled is None and payload.push_enabled is None:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one of in_app_enabled or push_enabled must be provided",
+        )
+
+    existing = session.exec(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == current_user.id,
+            NotificationPreference.notification_type == nt,
+        )
+    ).first()
+
+    if existing:
+        if payload.in_app_enabled is not None:
+            existing.in_app_enabled = payload.in_app_enabled
+        if payload.push_enabled is not None:
+            existing.push_enabled = payload.push_enabled
+        session.add(existing)
+    else:
+        existing = NotificationPreference(
+            user_id=current_user.id,
+            notification_type=nt,
+            in_app_enabled=payload.in_app_enabled if payload.in_app_enabled is not None else True,
+            push_enabled=payload.push_enabled if payload.push_enabled is not None else True,
+        )
+        session.add(existing)
+
+    session.commit()
+    session.refresh(existing)
+
+    return {
+        "notification_type": existing.notification_type,
+        "in_app_enabled": existing.in_app_enabled,
+        "push_enabled": existing.push_enabled,
+    }
 
 
 @router.post("/bulk")
