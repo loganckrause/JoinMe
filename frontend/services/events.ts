@@ -129,9 +129,10 @@ export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> 
   return events.map(mapBackendEventToCard);
 }
 
-export async function fetchEventsHosted(token?: string): Promise<EventCard[]> {
+export async function fetchEventsHosted(token?: string, userId?: number): Promise<EventCard[]> {
   // Add a timestamp to bypass aggressive fetch caching on React Native
-  const events = await apiRequest<BackendEvent[]>(`/events/hosted?_t=${Date.now()}`, { token });
+  const query = userId ? `?userId=${userId}` : '';
+  const events = await apiRequest<BackendEvent[]>(`/events/hosted${query}`, { token });
   return events.map(mapBackendEventToCard);
 }
 

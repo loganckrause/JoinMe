@@ -8,6 +8,7 @@ import { ThemedText } from "@/components/themed-text";
 import { IconSymbol } from "@/components/ui/icon-symbol.ios";
 import { fetchEventsHosted, EventCard } from "@/services/events";
 import { useAuthStore } from "@/store/auth";
+import { useLocalSearchParams } from "expo-router";
 
 export default function CreatedEventsScreen() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,13 +18,14 @@ export default function CreatedEventsScreen() {
     
     const token = useAuthStore((state) => state.token);
     const user = useAuthStore((state) => state.user);
+    const { userId } = useLocalSearchParams<{ userId?: string | string[] }>();
 
     useFocusEffect(
         useCallback(() => {
             const loadEvents = async () => {
                 try {
                     setLoading(true);
-                    const data = await fetchEventsHosted(token ?? undefined);
+                    const data = await fetchEventsHosted(token ?? undefined, userId ? Number(userId) : undefined);
                     setEvents(data);
                     setError(null);
                 } catch (err) {
