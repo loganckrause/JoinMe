@@ -146,6 +146,72 @@ async def get_event_feed(
     return result
 
 
+@router.get("/me/events")
+async def get_user_events(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    statement = (
+        select(Event, Category.name)
+        .join(Attendance, Attendance.event_id == Event.id)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+        .where(Attendance.user_id == current_user.id)
+        .order_by(Event.event_date.asc())
+    )
+    rows = session.exec(statement).all()
+
+    result = []
+    for event, category_name in rows:
+        if event.event_picture:
+            pic_name = (
+                event.event_picture.decode("utf-8")
+                if isinstance(event.event_picture, bytes)
+                else event.event_picture
+            )
+            if pic_name:
+                event.event_picture = generate_signed_url(pic_name)
+
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        event_data["is_accepted"] = True
+        result.append(event_data)
+
+    return result
+
+
+# ── RESOLVED: fixed typo event.enevt_picture → event.event_picture ──
+@router.get("/hosted")
+async def get_hosted_events(
+    current_user: User = Depends(get_auth_user),
+    session: Session = Depends(get_session),
+):
+    statement = (
+        select(Event, Category.name)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+        .where(Event.creator_id == current_user.id)
+        .order_by(Event.event_date.asc())
+    )
+    rows = session.exec(statement).all()
+
+    result = []
+    for event, category_name in rows:
+        if event.event_picture:
+            pic_name = (
+                event.event_picture.decode("utf-8")
+                if isinstance(event.event_picture, bytes)
+                else event.event_picture
+            )
+            if pic_name:
+                event.event_picture = generate_signed_url(pic_name)
+
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        event_data["is_accepted"] = True
+        result.append(event_data)
+
+    return result
+
+
 @router.get("/{eventId}")
 async def get_event(
     eventId: int,
@@ -424,69 +490,3 @@ async def upload_event_picture(
 
     signed_url = generate_signed_url(unique_filename)
     return {"message": "Image uploaded successfully", "url": signed_url}
-
-
-@router.get("/me/events")
-async def get_user_events(
-    current_user: User = Depends(get_auth_user),
-    session: Session = Depends(get_session),
-):
-    statement = (
-        select(Event, Category.name)
-        .join(Attendance, Attendance.event_id == Event.id)
-        .join(Category, Category.id == Event.category_id, isouter=True)
-        .where(Attendance.user_id == current_user.id)
-        .order_by(Event.event_date.asc())
-    )
-    rows = session.exec(statement).all()
-
-    result = []
-    for event, category_name in rows:
-        if event.event_picture:
-            pic_name = (
-                event.event_picture.decode("utf-8")
-                if isinstance(event.event_picture, bytes)
-                else event.event_picture
-            )
-            if pic_name:
-                event.event_picture = generate_signed_url(pic_name)
-
-        event_data = event.model_dump()
-        event_data["category_name"] = category_name
-        event_data["is_accepted"] = True
-        result.append(event_data)
-
-    return result
-
-
-# ── RESOLVED: fixed typo event.enevt_picture → event.event_picture ──
-@router.get("/hosted")
-async def get_hosted_events(
-    current_user: User = Depends(get_auth_user),
-    session: Session = Depends(get_session),
-):
-    statement = (
-        select(Event, Category.name)
-        .join(Category, Category.id == Event.category_id, isouter=True)
-        .where(Event.creator_id == current_user.id)
-        .order_by(Event.event_date.asc())
-    )
-    rows = session.exec(statement).all()
-
-    result = []
-    for event, category_name in rows:
-        if event.event_picture:
-            pic_name = (
-                event.event_picture.decode("utf-8")
-                if isinstance(event.event_picture, bytes)
-                else event.event_picture
-            )
-            if pic_name:
-                event.event_picture = generate_signed_url(pic_name)
-
-        event_data = event.model_dump()
-        event_data["category_name"] = category_name
-        event_data["is_accepted"] = True
-        result.append(event_data)
-
-    return result
