@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
+from sqlalchemy import Column
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
@@ -17,7 +19,7 @@ class User(SQLModel, table=True):
     city: str
     latitude: float | None = Field(default=None)
     longitude: float | None = Field(default=None)
-    user_picture: str | None = Field(default=None)
+    user_picture: str | None = Field(default=None, sa_column=Column(LONGTEXT))
     expo_push_token: str | None = Field(default=None)
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc)

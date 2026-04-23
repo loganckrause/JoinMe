@@ -47,11 +47,6 @@ export type EventParticipants = {
   attendees: EventUser[];
 };
 
-function toImageUri(rawPicture?: string | null): string {
-  if (!rawPicture) {
-    return EVENT_IMAGE_FALLBACK;
-  }
-
 export type EventFilters = {
   categoryId?: number;
   dateFrom?: string;
@@ -114,19 +109,6 @@ export async function fetchEvents(radius: number, token: string | null, filters:
   return events.map(mapBackendEventToCard);
 }
 
-export async function createEvent(payload: BackendEvent, token: string): Promise<EventCard> {
-  const createdEvent = await apiRequest<BackendEvent>('/events/', {
-    method: 'POST',
-    token,
-    body: JSON.stringify(payload),
-  });
-  return mapBackendEventToCard(createdEvent);
-}
-
-export async function fetchCategories(): Promise<Category[]> {
-  return apiRequest<Category[]>('/categories/');
-}
-
 export async function fetchEvent(eventId: number, token?: string): Promise<EventCard> {
   const event = await apiRequest<BackendEvent>(`/events/${eventId}`, { token });
   return mapBackendEventToCard(event);
@@ -142,12 +124,13 @@ export async function fetchEventsHosted(token?: string): Promise<EventCard[]> {
   return events.map(mapBackendEventToCard);
 }
 
-export async function createEvent(payload: CreateEventPayload, token: string | null): Promise<BackendEvent> {
-  return apiRequest<BackendEvent>('/events/', {
+export async function createEvent(payload: CreateEventPayload, token: string | null): Promise<EventCard> {
+  const createdEvent = await apiRequest<BackendEvent>('/events/', {
     token: token ?? undefined,
     method: 'POST',
     body: JSON.stringify(payload),
   });
+  return mapBackendEventToCard(createdEvent);
 }
 
 export async function fetchCategories(): Promise<Category[]> {
