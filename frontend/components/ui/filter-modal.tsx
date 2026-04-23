@@ -4,22 +4,21 @@ import {
     Modal,
     ScrollView,
     StyleSheet,
-    TextInput,
     TouchableOpacity,
     TouchableWithoutFeedback,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import DateRangePickerModal from '@/components/ui/date-range-picker-modal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { apiRequest } from '@/services/api';
 import type { EventFilters } from '@/services/events';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PANEL_WIDTH = SCREEN_WIDTH * 0.82;
-const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 type Category = { id: number; name: string };
 
@@ -30,19 +29,27 @@ type FilterModalProps = {
     onApply: (filters: EventFilters) => void;
 };
 
-function isValidDateString(value: string): boolean {
-    if (!ISO_DATE_REGEX.test(value)) return false;
-    const d = new Date(value);
-    return !Number.isNaN(d.getTime()) && value === d.toISOString().slice(0, 10);
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatRange(from?: string, to?: string): string {
+    if (!from && !to) return 'Any date';
+    const f = from ? new Date(from) : undefined;
+    const t = to ? new Date(to) : undefined;
+    const fmt = (d: Date) => `${MONTH_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    if (f && t) {
+        if (from!.slice(0, 10) === to!.slice(0, 10)) return fmt(f);
+        return `${fmt(f)} – ${fmt(t)}`;
+    }
+    return fmt((f ?? t)!);
 }
 
 export default function FilterModal({ visible, onClose, initial, onApply }: FilterModalProps) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoryId, setCategoryId] = useState<number | undefined>(initial.categoryId);
-    const [dateFromText, setDateFromText] = useState<string>(initial.dateFrom?.slice(0, 10) ?? '');
-    const [dateToText, setDateToText] = useState<string>(initial.dateTo?.slice(0, 10) ?? '');
+    const [dateFrom, setDateFrom] = useState<string | undefined>(initial.dateFrom);
+    const [dateTo, setDateTo] = useState<string | undefined>(initial.dateTo);
     const [radius, setRadius] = useState<number>(initial.radius ?? 50);
-    const [dateError, setDateError] = useState<string | null>(null);
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
 
     const slideAnim = useRef(new Animated.Value(PANEL_WIDTH)).current;
 
@@ -57,10 +64,9 @@ export default function FilterModal({ visible, onClose, initial, onApply }: Filt
     useEffect(() => {
         if (!visible) return;
         setCategoryId(initial.categoryId);
-        setDateFromText(initial.dateFrom?.slice(0, 10) ?? '');
-        setDateToText(initial.dateTo?.slice(0, 10) ?? '');
+        setDateFrom(initial.dateFrom);
+        setDateTo(initial.dateTo);
         setRadius(initial.radius ?? 50);
-        setDateError(null);
     }, [visible, initial]);
 
     useEffect(() => {
@@ -79,44 +85,25 @@ export default function FilterModal({ visible, onClose, initial, onApply }: Filt
 
     const handleApply = () => {
         const next: EventFilters = {};
-
         if (categoryId != null) next.categoryId = categoryId;
-
-        if (dateFromText) {
-            if (!isValidDateString(dateFromText)) {
-                setDateError('Start date must be YYYY-MM-DD');
-                return;
-            }
-            next.dateFrom = `${dateFromText}T00:00:00`;
-        }
-        if (dateToText) {
-            if (!isValidDateString(dateToText)) {
-                setDateError('End date must be YYYY-MM-DD');
-                return;
-            }
-            next.dateTo = `${dateToText}T23:59:59`;
-        }
-        if (next.dateFrom && next.dateTo && next.dateFrom > next.dateTo) {
-            setDateError('Start date must be before end date');
-            return;
-        }
-
+        if (dateFrom) next.dateFrom = dateFrom;
+        if (dateTo) next.dateTo = dateTo;
         next.radius = radius;
-
-        setDateError(null);
         onApply(next);
         onClose();
     };
 
     const handleClear = () => {
         setCategoryId(undefined);
-        setDateFromText('');
-        setDateToText('');
+        setDateFrom(undefined);
+        setDateTo(undefined);
         setRadius(50);
-        setDateError(null);
         onApply({});
         onClose();
     };
+
+    const dateLabel = useMemo(() => formatRange(dateFrom, dateTo), [dateFrom, dateTo]);
+    const hasDate = !!(dateFrom || dateTo);
 
     return (
         <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -167,27 +154,18 @@ export default function FilterModal({ visible, onClose, initial, onApply }: Filt
                     <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
                         Date range
                     </ThemedText>
-                    <ThemedView style={styles.dateRow}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="From (YYYY-MM-DD)"
-                            placeholderTextColor="#666"
-                            value={dateFromText}
-                            onChangeText={setDateFromText}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="To (YYYY-MM-DD)"
-                            placeholderTextColor="#666"
-                            value={dateToText}
-                            onChangeText={setDateToText}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                        />
-                    </ThemedView>
-                    {dateError && <ThemedText style={styles.errorText}>{dateError}</ThemedText>}
+                    <TouchableOpacity
+                        onPress={() => setDatePickerOpen(true)}
+                        style={styles.dateButton}
+                        activeOpacity={0.7}
+                    >
+                        <ThemedText
+                            style={[styles.dateButtonText, !hasDate && styles.dateButtonTextMuted]}
+                        >
+                            {dateLabel}
+                        </ThemedText>
+                        <IconSymbol name="calendar" color="#fff" size={16} />
+                    </TouchableOpacity>
 
                     <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
                         Search Radius: {radius} miles
@@ -222,6 +200,17 @@ export default function FilterModal({ visible, onClose, initial, onApply }: Filt
                     </TouchableOpacity>
                 </ThemedView>
             </Animated.View>
+
+            <DateRangePickerModal
+                visible={datePickerOpen}
+                onClose={() => setDatePickerOpen(false)}
+                initialFrom={dateFrom}
+                initialTo={dateTo}
+                onApply={(from, to) => {
+                    setDateFrom(from);
+                    setDateTo(to);
+                }}
+            />
         </Modal>
     );
 }
@@ -288,24 +277,21 @@ const styles = StyleSheet.create({
         color: '#0b0b0b',
         fontWeight: '600',
     },
-    dateRow: {
+    dateButton: {
         flexDirection: 'row',
-        gap: 10,
-        backgroundColor: 'transparent',
-    },
-    input: {
-        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: '#1a1a1a',
         borderRadius: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+    dateButtonText: {
         color: '#fff',
         fontSize: 14,
     },
-    errorText: {
-        color: '#ff6b6b',
-        fontSize: 12,
-        marginTop: 6,
+    dateButtonTextMuted: {
+        color: '#888',
     },
     helperText: {
         color: '#666',
