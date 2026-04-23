@@ -186,12 +186,30 @@ export const useAuthStore = create<AuthStore>((set) => ({
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Registration failed with status ${response.status}:`, errorText);
+                let backendDetail: string | null = null;
                 try {
                     const errorData = JSON.parse(errorText);
-                    throw new Error(errorData.detail || 'Registration failed');
+                    const detail = errorData?.detail;
+                    if (typeof detail === 'string') {
+                        backendDetail = detail;
+                    } else if (Array.isArray(detail)) {
+                        const messages = detail
+                            .map((item) => {
+                                if (typeof item === 'string') return item;
+                                if (item && typeof item === 'object' && typeof item.msg === 'string') {
+                                    return item.msg;
+                                }
+                                return null;
+                            })
+                            .filter((message): message is string => Boolean(message));
+                        if (messages.length > 0) {
+                            backendDetail = messages.join(', ');
+                        }
+                    }
                 } catch {
-                    throw new Error(`Registration failed: ${response.status}`);
+                    // Keep fallback below when response body isn't JSON.
                 }
+                throw new Error(backendDetail || `Registration failed: ${response.status}`);
             }
 
             const data = await response.json();

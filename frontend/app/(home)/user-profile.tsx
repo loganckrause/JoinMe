@@ -10,14 +10,17 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
+import { BackButton } from "@/components/back-button";
 import Sidebar from "@/components/ui/sidebar";
 import { useAuthStore } from "@/store/auth";
 import { fetchProfileData, fetchUserById, fetchUserInterestsById } from "@/services/profile";
 import { AppUser, toSidebarUser } from "@/services/user";
 export default function UserProfile() {
   const router = useRouter();
-  const { userId } = useLocalSearchParams<{ userId?: string | string[] }>();
+  const { userId, source } = useLocalSearchParams<{ userId?: string | string[]; source?: string | string[] }>();
   const rawUserId = Array.isArray(userId) ? userId[0] : userId;
+  const rawSource = Array.isArray(source) ? source[0] : source;
+  const isFromEvent = rawSource === 'event';
   const parsedUserId = useMemo(() => {
     if (typeof rawUserId === 'undefined') {
       return undefined;
@@ -120,9 +123,11 @@ export default function UserProfile() {
   return (
     <ScrollView style={{ flex: 1 , paddingHorizontal: 20}}>
       <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => setSidebarOpen(true)}>
-              <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
-          </TouchableOpacity>
+          {isFromEvent ? <BackButton /> : (
+            <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+                <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
+            </TouchableOpacity>
+          )}
       </View>
       {!loading && error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -133,10 +138,10 @@ export default function UserProfile() {
 
       <View style={styles.statsContainer}>
         <View style={[styles.statItem, styles.cityItem]}>
-          <Text style={[styles.statNumber, styles.cityText]}>
+          <Text style={[styles.statNumber, styles.statNumber]}>
           {profileUser?.city ?? "-"}
           </Text>
-          <Text style={[styles.statLabel, styles.cityLabel]}>
+          <Text style={styles.statLabel}>
             City
           </Text>
         </View>
@@ -196,13 +201,12 @@ export default function UserProfile() {
 
 const styles = StyleSheet.create({
   topBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: 16,
-        backgroundColor: 'transparent',
-        height: 150,
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 60,
+    backgroundColor: 'transparent',
+  },
   backButton: {
         padding: 4,
   },

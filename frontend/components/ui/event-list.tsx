@@ -3,18 +3,10 @@ import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { IconSymbol } from "./icon-symbol.ios";
 import { ThemedView } from "../themed-view";
 import { router } from "expo-router";
-
-type Event = {
-  id: number;
-  title: string;
-  number: string;
-  location: string;
-  image: string;
-  description: string;
-};
+import { EventCard } from "@/services/events";
 
 type Props = {
-  events: Event[];
+  events: EventCard[];
 };
 
 export default function EventList({ events }: Props) {
