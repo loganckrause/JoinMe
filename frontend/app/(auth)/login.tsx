@@ -83,9 +83,6 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </ThemedView>
                 </ThemedView>
-                <TouchableOpacity onPress={() => router.push('/loginhelp')} disabled={loading}>
-                    <ThemedText style={styles.link}>Forgot Password?</ThemedText>
-                </TouchableOpacity>
                 <TouchableOpacity onPress={handleLogin} disabled={loading}>
                     <ThemedText type="defaultSemiBold" style={styles.button}>
                         {loading ? 'Logging in...' : 'Login'}
@@ -136,11 +133,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 15,
     top: '26%',
-  },
-  link: {
-    textAlign: 'right',
-    color: '#3f85daff',
-    textDecorationLine: 'underline',
   },
   buttoncl: {
     textAlign: 'center',

@@ -49,6 +49,7 @@ async function secureStoreDeleteItem(key: string) {
     ]);
 }
 import { AppUser, BackendUser, mapBackendUserToAppUser } from '@/services/user';
+import { registerForPushNotifications } from '@/services/notifications';
 
 type AuthStore = {
     isAuthenticated: boolean;
@@ -130,7 +131,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 user,
                 token,
             });
-            
+
             // Store token and user data securely in background (non-blocking)
             Promise.allSettled([
                 secureStoreSetItem('joinme_token', token),
@@ -139,6 +140,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 console.log('SecureStore write completed in background');
             }).catch((error) => {
                 console.error('SecureStore write error:', error);
+            });
+
+            registerForPushNotifications(token).catch((err) => {
+                console.warn('Push token registration failed:', err);
             });
         } catch (error) {
             console.error('Login error:', error);
@@ -181,12 +186,30 @@ export const useAuthStore = create<AuthStore>((set) => ({
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Registration failed with status ${response.status}:`, errorText);
+                let backendDetail: string | null = null;
                 try {
                     const errorData = JSON.parse(errorText);
-                    throw new Error(errorData.detail || 'Registration failed');
+                    const detail = errorData?.detail;
+                    if (typeof detail === 'string') {
+                        backendDetail = detail;
+                    } else if (Array.isArray(detail)) {
+                        const messages = detail
+                            .map((item) => {
+                                if (typeof item === 'string') return item;
+                                if (item && typeof item === 'object' && typeof item.msg === 'string') {
+                                    return item.msg;
+                                }
+                                return null;
+                            })
+                            .filter((message): message is string => Boolean(message));
+                        if (messages.length > 0) {
+                            backendDetail = messages.join(', ');
+                        }
+                    }
                 } catch {
-                    throw new Error(`Registration failed: ${response.status}`);
+                    // Keep fallback below when response body isn't JSON.
                 }
+                throw new Error(backendDetail || `Registration failed: ${response.status}`);
             }
 
             const data = await response.json();
@@ -206,6 +229,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 secureStoreSetItem('joinme_userData', JSON.stringify(newUser)),
             ]).catch((storeError) => {
                 console.error('SecureStore register write failed:', storeError);
+            });
+
+            registerForPushNotifications(token).catch((err) => {
+                console.warn('Push token registration failed:', err);
             });
         } catch (error) {
             console.error('Registration error:', error);
@@ -251,6 +278,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
                     isAuthenticated: true,
                     user,
                     token,
+                });
+                registerForPushNotifications(token).catch((err) => {
+                    console.warn('Push token registration failed:', err);
                 });
             }
         } catch (error) {

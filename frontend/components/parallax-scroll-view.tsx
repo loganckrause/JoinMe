@@ -18,6 +18,7 @@ type Props = PropsWithChildren<{
   headerImage?: ReactElement;
   headerBackgroundColor: { dark: string; light: string };
   headerHeight?: number;
+  refreshControl?: ReactElement;
 }>;
 
 export default function ParallaxScrollView({
@@ -25,6 +26,7 @@ export default function ParallaxScrollView({
   headerImage,
   headerBackgroundColor,
   headerHeight = HEADER_HEIGHT,
+  refreshControl,
 }: Props) {
   const backgroundColor = useThemeColor({}, 'background');
   const colorScheme = useColorScheme() ?? 'light';
@@ -58,7 +60,8 @@ export default function ParallaxScrollView({
     <Animated.ScrollView
       ref={scrollRef}
       style={{ backgroundColor, flex: 1 }}
-      scrollEventThrottle={16}>
+      scrollEventThrottle={16}
+      refreshControl={refreshControl}>
       <Animated.View
         style={[
           styles.header,

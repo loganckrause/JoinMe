@@ -23,6 +23,7 @@ export default function InterestsScreen() {
         password?: string;
         fullName?: string;
         age?: string;
+        city?: string;
     }>();
     const [selected, setSelected] = useState<number[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -33,6 +34,7 @@ export default function InterestsScreen() {
     const password = asSingleParam(params.password);
     const fullName = asSingleParam(params.fullName);
     const age = asSingleParam(params.age);
+    const city = asSingleParam(params.city);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -68,8 +70,8 @@ export default function InterestsScreen() {
     };
 
     const signupDataMissing = useMemo(
-        () => !email || !password || !fullName || !age,
-        [age, email, fullName, password]
+        () => !email || !password || !fullName || !age || !city,
+        [age, city, email, fullName, password]
     );
 
     const canProceed = selected.length >= 1 && !signupDataMissing;
@@ -86,6 +88,7 @@ export default function InterestsScreen() {
                 password,
                 fullName,
                 age,
+                city,
                 categoryIds: JSON.stringify(selected),
             },
         });

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from sqlmodel import Session, select, func
 
 from app.core.database import get_session
 from app.core.dependencies import get_current_user
+from app.core.notifications import NotificationType, create_notification
 from app.models.user import User
 from app.models.user_rating import UserRating
 
@@ -68,6 +69,7 @@ async def get_received_ratings(
 @router.post("/")
 async def create_user_rating(
     payload: UserRatingCreatePayload,
+    background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
@@ -105,6 +107,15 @@ async def create_user_rating(
     )
 
     session.add(rating)
+
+    create_notification(
+        session,
+        payload.ratee_id,
+        f"{current_user.name} gave you a {payload.score}-star rating.",
+        NotificationType.USER_RATED,
+        background_tasks=background_tasks,
+    )
+
     session.commit()
     session.refresh(rating)
 

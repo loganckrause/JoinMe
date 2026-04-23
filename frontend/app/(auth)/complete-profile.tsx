@@ -20,6 +20,7 @@ export default function CompleteProfileScreen() {
         password?: string;
         fullName?: string;
         age?: string;
+        city?: string;
         categoryIds?: string;
     }>();
     const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export default function CompleteProfileScreen() {
     const password = asSingleParam(params.password);
     const fullName = asSingleParam(params.fullName);
     const age = asSingleParam(params.age);
+    const city = asSingleParam(params.city);
     const categoryIdsParam = asSingleParam(params.categoryIds);
 
     const pickImage = async () => {
@@ -58,7 +60,7 @@ export default function CompleteProfileScreen() {
             return;
         }
 
-        if (!email || !password || !fullName || !age || !categoryIdsParam) {
+        if (!email || !password || !fullName || !age || !city || !categoryIdsParam) {
             Alert.alert('Missing signup data', 'Please restart signup and try again.');
             return;
         }
@@ -84,6 +86,7 @@ export default function CompleteProfileScreen() {
                 fullName,
                 age: parsedAge,
                 bio,
+                city,
                 categoryIds,
                 imageUri: photoUri,
             });

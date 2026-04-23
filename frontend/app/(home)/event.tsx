@@ -1,16 +1,19 @@
-import { StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, ScrollView, TouchableOpacity, Image, Alert, RefreshControl } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { EventCard, EventUser, fetchEventParticipants, getUserImageUri } from '@/services/events';
+import { EventCard, EventUser, deleteEvent, fetchEvent, fetchEventParticipants, getUserImageUri, recordSwipe } from '@/services/events';
+import { useAuthStore } from '@/store/auth';
 
 export default function EventScreen() {
     const { event: eventParam } = useLocalSearchParams();
-    const event = useMemo(() => {
+    const token = useAuthStore((state) => state.token);
+    const currentUser = useAuthStore((state) => state.user);
+    const initialEvent = useMemo(() => {
         if (!eventParam || typeof eventParam !== 'string') {
             return null;
         }
@@ -22,16 +25,30 @@ export default function EventScreen() {
         }
     }, [eventParam]);
 
+    const [event, setEvent] = useState<EventCard | null>(initialEvent);
+
     const [organizer, setOrganizer] = useState<EventUser | null>(null);
     const [attendees, setAttendees] = useState<EventUser[]>([]);
     const [loadingPeople, setLoadingPeople] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [peopleError, setPeopleError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
+    const [isAccepted, setIsAccepted] = useState(Boolean(event?.isAccepted));
+    const isOrganizer = Boolean(
+        currentUser?.id && (
+            (event?.creatorId && currentUser.id === event.creatorId) ||
+            (organizer?.id && currentUser.id === organizer.id)
+        )
+    );
 
     useEffect(() => {
         let mounted = true;
+        setEvent(initialEvent);
+        setIsAccepted(Boolean(initialEvent?.isAccepted));
+        setActionError(null);
 
         const loadPeople = async () => {
-            if (!event) {
+            if (!initialEvent) {
                 if (mounted) {
                     setLoadingPeople(false);
                     setPeopleError('Missing event data. Please reopen this event.');
@@ -42,8 +59,13 @@ export default function EventScreen() {
             try {
                 setLoadingPeople(true);
                 setPeopleError(null);
-                const people = await fetchEventParticipants(event.id, event.creatorId);
+                const [latestEvent, people] = await Promise.all([
+                    fetchEvent(initialEvent.id, token ?? undefined),
+                    fetchEventParticipants(initialEvent.id, initialEvent.creatorId),
+                ]);
                 if (mounted) {
+                    setEvent(latestEvent);
+                    setIsAccepted(Boolean(latestEvent.isAccepted));
                     setOrganizer(people.organizer);
                     setAttendees(people.attendees);
                 }
@@ -63,20 +85,101 @@ export default function EventScreen() {
         return () => {
             mounted = false;
         };
-    }, [event]);
+    }, [initialEvent, token]);
+
+    const refreshEvent = useCallback(async () => {
+        if (!event) {
+            return;
+        }
+
+        setRefreshing(true);
+        try {
+            setActionError(null);
+            const [latestEvent, people] = await Promise.all([
+                fetchEvent(event.id, token ?? undefined),
+                fetchEventParticipants(event.id, event.creatorId),
+            ]);
+            setEvent(latestEvent);
+            setIsAccepted(Boolean(latestEvent.isAccepted));
+            setOrganizer(people.organizer);
+            setAttendees(people.attendees);
+            setPeopleError(null);
+        } catch (error) {
+            setPeopleError(error instanceof Error ? error.message : 'Failed to reload event information.');
+        } finally {
+            setRefreshing(false);
+        }
+    }, [event, token]);
+
+    const handleSwipeAction = async (status: boolean) => {
+        if (!event) {
+            return;
+        }
+
+        if (!token) {
+            setActionError('Please log in to change event status.');
+            return;
+        }
+
+        try {
+            await recordSwipe(event.id, status, token);
+            setIsAccepted(status);
+            setActionError(null);
+        } catch (error) {
+            setActionError(error instanceof Error ? error.message : 'Failed to update event status.');
+        }
+    };
+
+    const handleDeleteEvent = async () => {
+        if (!event) {
+            return;
+        }
+
+        if (!token) {
+            setActionError('Please log in to delete this event.');
+            return;
+        }
+
+        Alert.alert(
+            'Delete event?',
+            'Are you sure you want to delete this event?',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await deleteEvent(event.id, token);
+                            setActionError(null);
+                            router.replace('/all-events');
+                        } catch (error) {
+                            setActionError(error instanceof Error ? error.message : 'Failed to delete event.');
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const navigateToProfile = (userId?: number) => {
         if (!userId) {
             return;
         }
 
-        router.push({ pathname: '/user-profile', params: { userId } });
+        router.push({ pathname: '/user-profile', params: { userId, source: 'event' } });
     };
 
     return (
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
             headerHeight={250}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={refreshEvent} tintColor="#59d386ff" />
+            }
             headerImage={
                 <ThemedView style={{ flex: 1 }}>
                     <Image
@@ -128,11 +231,22 @@ export default function EventScreen() {
                         <ThemedText style={styles.infoText}>No participants yet.</ThemedText>
                     ) : null}
                 </ScrollView>
+                {actionError ? <ThemedText style={styles.errorText}>{actionError}</ThemedText> : null}
                 <ThemedView style={styles.buttonRow}>
-                   
-                    <TouchableOpacity style={styles.grnbtn}>
-                        <ThemedText>Accept</ThemedText>
-                    </TouchableOpacity>
+                    {isOrganizer ? (
+                        <TouchableOpacity style={styles.redbtn} onPress={handleDeleteEvent}>
+                            <ThemedText style={styles.redbtnText}>Delete</ThemedText>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={isAccepted ? styles.redbtn : styles.grnbtn}
+                            onPress={() => handleSwipeAction(!isAccepted)}
+                        >
+                            <ThemedText style={isAccepted ? styles.redbtnText : styles.grnbtnText}>
+                                {isAccepted ? 'Decline' : 'Accept'}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    )}
                 </ThemedView>
             </ThemedView>
         </ParallaxScrollView>
@@ -206,6 +320,21 @@ const styles = StyleSheet.create({
         borderColor: '#59d386ff',
         width: 120,
         alignItems: 'center',
+    },
+    redbtn: {
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 25,
+        borderColor: '#dd3939ff',
+        width: 120,
+        alignItems: 'center',
+    },
+    grnbtnText: {
+        color: '#59d386ff',
+    },
+    redbtnText: {
+        color: '#dd3939ff',
     },
     pp: {
         borderRadius: 100,
