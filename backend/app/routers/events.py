@@ -153,9 +153,9 @@ async def get_event(
     current_user: User | None = Depends(_get_optional_current_user),
 ):
     row = session.exec(
-        select(Event, Category.name).join(
-            Category, Category.id == Event.category_id, isouter=True
-        ).where(Event.id == eventId)
+        select(Event, Category.name)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+        .where(Event.id == eventId)
     ).first()
 
     if not row:
@@ -174,19 +174,17 @@ async def get_event(
 
     event_data = event.model_dump()
     event_data["category_name"] = category_name
-    event_data["is_accepted"] = (
-        bool(current_user)
-        and (
-            event.creator_id == current_user.id
-            or event.id in {
-                *session.exec(
-                    select(Swipe.event_id).where(
-                        Swipe.user_id == current_user.id,
-                        Swipe.is_interested.is_(True),
-                    )
-                ).all()
-            }
-        )
+    event_data["is_accepted"] = bool(current_user) and (
+        event.creator_id == current_user.id
+        or event.id
+        in {
+            *session.exec(
+                select(Swipe.event_id).where(
+                    Swipe.user_id == current_user.id,
+                    Swipe.is_interested.is_(True),
+                )
+            ).all()
+        }
     )
 
     return event_data
@@ -434,11 +432,16 @@ async def get_user_events(
     session: Session = Depends(get_session),
 ):
     statement = (
-        select(Event).join(Attendance).where(Attendance.user_id == current_user.id)
+        select(Event, Category.name)
+        .join(Attendance, Attendance.event_id == Event.id)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+        .where(Attendance.user_id == current_user.id)
+        .order_by(Event.event_date.asc())
     )
-    events = session.exec(statement).all()
+    rows = session.exec(statement).all()
 
-    for event in events:
+    result = []
+    for event, category_name in rows:
         if event.event_picture:
             pic_name = (
                 event.event_picture.decode("utf-8")
@@ -448,7 +451,12 @@ async def get_user_events(
             if pic_name:
                 event.event_picture = generate_signed_url(pic_name)
 
-    return events
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        event_data["is_accepted"] = True
+        result.append(event_data)
+
+    return result
 
 
 # ── RESOLVED: fixed typo event.enevt_picture → event.event_picture ──
@@ -457,10 +465,16 @@ async def get_hosted_events(
     current_user: User = Depends(get_auth_user),
     session: Session = Depends(get_session),
 ):
-    statement = select(Event).where(Event.creator_id == current_user.id)
-    events = session.exec(statement).all()
+    statement = (
+        select(Event, Category.name)
+        .join(Category, Category.id == Event.category_id, isouter=True)
+        .where(Event.creator_id == current_user.id)
+        .order_by(Event.event_date.asc())
+    )
+    rows = session.exec(statement).all()
 
-    for event in events:
+    result = []
+    for event, category_name in rows:
         if event.event_picture:
             pic_name = (
                 event.event_picture.decode("utf-8")
@@ -470,4 +484,9 @@ async def get_hosted_events(
             if pic_name:
                 event.event_picture = generate_signed_url(pic_name)
 
-    return events
+        event_data = event.model_dump()
+        event_data["category_name"] = category_name
+        event_data["is_accepted"] = True
+        result.append(event_data)
+
+    return result

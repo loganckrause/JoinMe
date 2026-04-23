@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useFocusEffect } from "expo-router";
 import Sidebar from "@/components/ui/sidebar";
 import EventList from "@/components/ui/event-list";
 import { ThemedView } from "@/components/themed-view";
@@ -8,7 +9,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol.ios";
 import { fetchEventsHosted, EventCard } from "@/services/events";
 import { useAuthStore } from "@/store/auth";
 
-export default function AcceptedEventsScreen() {
+export default function CreatedEventsScreen() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [events, setEvents] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,23 +18,25 @@ export default function AcceptedEventsScreen() {
     const token = useAuthStore((state) => state.token);
     const user = useAuthStore((state) => state.user);
 
-    useEffect(() => {
-        const loadEvents = async () => {
-            try {
-                setLoading(true);
-                const data = await fetchEventsHosted(token ?? undefined);
-                setEvents(data);
-                setError(null);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to load events");
-                setEvents([]);
-            } finally {
-                setLoading(false);
-            }
-        };
+    useFocusEffect(
+        useCallback(() => {
+            const loadEvents = async () => {
+                try {
+                    setLoading(true);
+                    const data = await fetchEventsHosted(token ?? undefined);
+                    setEvents(data);
+                    setError(null);
+                } catch (err) {
+                    setError(err instanceof Error ? err.message : "Failed to load events");
+                    setEvents([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-        loadEvents();
-    }, [token]);
+            loadEvents();
+        }, [token])
+    );
 
     return (
         <ScrollView style={{ flex: 1, backgroundColor: '#000000ff' }}>
@@ -51,7 +54,7 @@ export default function AcceptedEventsScreen() {
             <ThemedView style={styles.container}>
                 {loading && <ThemedText style={{ color: '#fff' }}>Loading events...</ThemedText>}
                 {error && <ThemedText style={{ color: 'red' }}>{error}</ThemedText>}
-                {!loading && events.length === 0 && (
+                {!loading && events.length === 0 && !error && (
                     <ThemedText style={{ color: '#fff' }}>Looks like you haven't created any events yet.</ThemedText>
                 )}
                 {!loading && events.length > 0 && <EventList events={events} />}
