@@ -47,6 +47,11 @@ export type EventParticipants = {
   attendees: EventUser[];
 };
 
+function toImageUri(rawPicture?: string | null): string {
+  if (!rawPicture) {
+    return EVENT_IMAGE_FALLBACK;
+  }
+
 export type EventFilters = {
   categoryId?: number;
   dateFrom?: string;
@@ -109,12 +114,24 @@ export async function fetchEvents(radius: number, token: string | null, filters:
   return events.map(mapBackendEventToCard);
 }
 
+export async function createEvent(payload: BackendEvent, token: string): Promise<EventCard> {
+  const createdEvent = await apiRequest<BackendEvent>('/events/', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(payload),
+  });
+  return mapBackendEventToCard(createdEvent);
+}
+
+export async function fetchCategories(): Promise<Category[]> {
+  return apiRequest<Category[]>('/categories/');
+}
+
 export async function fetchEvent(eventId: number, token?: string): Promise<EventCard> {
   const event = await apiRequest<BackendEvent>(`/events/${eventId}`, { token });
   return mapBackendEventToCard(event);
 }
 
-// RESOLVED: kept the /events/me/events version (matches backend route), removed duplicate /swipes/accepted version
 export async function fetchAcceptedEvents(token?: string): Promise<EventCard[]> {
   const events = await apiRequest<BackendEvent[]>('/events/me/events', { token });
   return events.map(mapBackendEventToCard);
