@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+from sqlalchemy import Column
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
@@ -20,7 +22,7 @@ class Event(SQLModel, table=True):
     zip: str
     latitude: float | None = Field(default=None)
     longitude: float | None = Field(default=None)
-    event_picture: str | None = Field(default=None)
+    event_picture: str | None = Field(default=None, sa_column=Column(LONGTEXT))
     created_at: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )

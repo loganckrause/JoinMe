@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { createEvent, fetchCategories } from '@/services/events';
+import { createEvent, fetchCategories, uploadEventPicture } from '@/services/events';
 import { toSidebarUser } from "@/services/user";
 import { fetchMyInterests } from '@/services/profile';
 
@@ -25,7 +25,10 @@ export default function CrtEvntScreen() {
     const token = useAuthStore(state => state.token);
 
     const [showMore, setShowMore] = useState(false);
-    const [dateValue, setDateValue] = useState(new Date());
+    
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 1); // Default to tomorrow
+    const [dateValue, setDateValue] = useState(defaultDate);
     const [timeValue, setTimeValue] = useState(new Date());
 
     const MAX_SELECTIONS = 5;
@@ -41,7 +44,10 @@ export default function CrtEvntScreen() {
     };
 
     const [eventName, setEventName] = useState('');
-    const [location, setLocation] = useState('');
+    const [street, setStreet] = useState('');
+    const [city, setCity] = useState('');
+    const [state, setState] = useState('');
+    const [zip, setZip] = useState('');
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [description, setDescription] = useState('');
@@ -94,8 +100,12 @@ export default function CrtEvntScreen() {
     }
 
     const createevent = async () => {
-        if (!eventName || !location || !description) {
+        if (!eventName || !street || !city || !state || !zip || !description) {
              Alert.alert('Missing info', 'Please fill in all required fields.');
+             return;
+         }
+         if (selected.length === 0) {
+             Alert.alert('Missing info', 'Please select at least one interest category.');
              return;
          }
          try {
@@ -103,16 +113,24 @@ export default function CrtEvntScreen() {
              const data = await createEvent({
                  title: eventName,
                  description,
-                 event_picture: photoUri,
+                 event_picture: null,
                  event_date: formatDT(),
                  max_capacity: count,
-                 location,
+                 street,
+                 city,
+                 state,
+                 zip,
                  latitude: 0,    // Placeholder values for latitude and longitude
                  longitude: 0,
                  category_id: selected[0],
              },
              token
          );
+
+             // Upload the image to your Google Bucket after the event is created!
+             if (photoUri) {
+                 await uploadEventPicture(token, data.id, photoUri);
+             }
 
              console.log("Created event:", data);
              router.push({
@@ -158,15 +176,47 @@ export default function CrtEvntScreen() {
                 <ThemedText style={styles.t2}>Location</ThemedText>
                 <ThemedView style={styles.inputContainer2}>
                     <TextInput
-                        placeholder="Add a place or address"
+                        placeholder="Street Address"
                         placeholderTextColor='#ccc'
                         style={styles.input}
-                        value={location}
-                        onChangeText={setLocation}
+                        value={street}
+                        onChangeText={setStreet}
                         editable={!loading}
                     />
                     <ThemedView style={styles.locimg}>
                         <IconSymbol name="mappin.and.ellipse" color="#ffffffff" size={20} />
+                    </ThemedView>
+                </ThemedView>
+                <ThemedView style={styles.locRow}>
+                    <ThemedView style={[styles.inputContainer, { flex: 2 }]}>
+                        <TextInput
+                            placeholder="City"
+                            placeholderTextColor='#ccc'
+                            style={styles.input}
+                            value={city}
+                            onChangeText={setCity}
+                            editable={!loading}
+                        />
+                    </ThemedView>
+                    <ThemedView style={[styles.inputContainer, { flex: 1 }]}>
+                        <TextInput
+                            placeholder="State"
+                            placeholderTextColor='#ccc'
+                            style={styles.input}
+                            value={state}
+                            onChangeText={setState}
+                            editable={!loading}
+                        />
+                    </ThemedView>
+                    <ThemedView style={[styles.inputContainer, { flex: 1.2 }]}>
+                        <TextInput
+                            placeholder="Zip"
+                            placeholderTextColor='#ccc'
+                            style={styles.input}
+                            value={zip}
+                            onChangeText={setZip}
+                            editable={!loading}
+                        />
                     </ThemedView>
                 </ThemedView>
                 <ThemedView style={styles.t2row}>
@@ -372,6 +422,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         fontSize: 16,
         color: '#fff',
+    },
+    locRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 10,
     },
     inputRow: {
         flexDirection: 'row',
