@@ -106,3 +106,4 @@ CLAUDE.md
 
 # Local development uploads
 backend/uploads/
+frontend/.env.local
