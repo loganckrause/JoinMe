@@ -182,13 +182,13 @@ async def get_user_events(
 # ── RESOLVED: fixed typo event.enevt_picture → event.event_picture ──
 @router.get("/hosted")
 async def get_hosted_events(
-    current_user: User = Depends(get_auth_user),
+    userId: int | None = None,
     session: Session = Depends(get_session),
 ):
     statement = (
         select(Event, Category.name)
         .join(Category, Category.id == Event.category_id, isouter=True)
-        .where(Event.creator_id == current_user.id)
+        .where(Event.creator_id == userId)
         .order_by(Event.event_date.asc())
     )
     rows = session.exec(statement).all()
