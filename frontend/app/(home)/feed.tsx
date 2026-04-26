@@ -19,7 +19,6 @@ export default function FeedScreen() {
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    // RESOLVED: kept both filterModal state (main) and token (HEAD)
     const [filterModalOpen, setFilterModalOpen] = useState(false);
     const [filters, setFilters] = useState<EventFilters>({});
     const token = useAuthStore((state) => state.token);
@@ -37,7 +36,7 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                // RESOLVED: kept new signature with radius + filters (main)
+
                 const events = await fetchEvents(filters.radius || 50, token, filters);
                 if (mounted) setQueue(events);
             } catch (loadError) {
@@ -119,7 +118,7 @@ export default function FeedScreen() {
                 <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
-                <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
+                <ThemedText type="defaultSemiBold" style={styles.title} pointerEvents="none">JoinMe</ThemedText>
                 <ThemedView style={styles.headerRight}>
                     <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
                         <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
@@ -219,6 +218,9 @@ const styles = StyleSheet.create({
         fontSize: 40,
         backgroundColor: 'transparent',
         paddingTop: 40,
+        position: 'absolute',
+        left: 0,
+        right: 0,
     },
     topBar: {
         flexDirection: 'row',
