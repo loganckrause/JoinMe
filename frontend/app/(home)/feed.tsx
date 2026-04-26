@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -160,24 +161,29 @@ export default function FeedScreen() {
                         )}
 
                         <GestureDetector gesture={panGesture}>
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(currentEvent) } })}
-                            >
-                                <Animated.View key={currentEvent!.id} style={[styles.eventCard, animatedStyle]}>
-                                    <Image source={{ uri: currentEvent!.image }} style={styles.eventImage} />
-                                    <ThemedView style={styles.row}>
-                                        <ThemedText numberOfLines={2} style={styles.eventTitleText}>{currentEvent!.title}</ThemedText>
-                                        <ThemedView style={styles.peopleWrap}>
-                                            <ThemedText style={styles.peopleText}>{currentEvent!.number}</ThemedText>
-                                            <IconSymbol size={30} name="person.3" color="#fff" />
+                            <Pressable onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(currentEvent) } })}>
+                                {({ pressed }) => (
+                                    <Animated.View
+                                        key={currentEvent!.id}
+                                        style={[
+                                            styles.eventCard,
+                                            animatedStyle,
+                                            { backgroundColor: pressed ? '#191919' : '#0f0f0f' }
+                                        ]}
+                                    >
+                                        <Image source={{ uri: currentEvent!.image }} style={styles.eventImage} />
+                                        <ThemedView style={styles.row}>
+                                            <ThemedText numberOfLines={2} style={styles.eventTitleText}>{currentEvent!.title}</ThemedText>
+                                            <ThemedView style={styles.peopleWrap}>
+                                                <ThemedText style={styles.peopleText}>{currentEvent!.number}</ThemedText>
+                                                <IconSymbol size={30} name="person.3" color="#fff" />
+                                            </ThemedView>
                                         </ThemedView>
-                                    </ThemedView>
-                                    <ThemedText style={styles.text2}>{currentEvent!.location}</ThemedText>
-                                </Animated.View>
-                            </TouchableOpacity>
-                        </GestureDetector>
-
+                                        <ThemedText style={styles.text2}>{currentEvent!.location}</ThemedText>
+                                    </Animated.View>
+                                )}
+                            </Pressable>
+                        </GestureDetector> 
                         <ThemedView style={styles.buttrow}>
                             <TouchableOpacity style={styles.nobutt} onPress={() => handleSwipeDecision(false)}>
                                 <ThemedText style={styles.nobuttText}>✕</ThemedText>
