@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"properties":{"did_attend":{"type":"boolean","title":"Did Attend"}},"type":"object","required":["did_attend"],"title":"AttendanceConfirmPayload"}}}}}

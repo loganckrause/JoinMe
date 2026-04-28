@@ -1,519 +1,1593 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: JoinMe API
-  description: Core API specification for the JoinMe event matching application.
-  version: 1.0.0
-servers:
-  - url: http://localhost:8000/api/v1
-    description: Local Python Backend Server
-
-security:
-  - bearerAuth: [] # Applies JWT globally. Overridden on public routes.
-
+  title: FastAPI
+  version: 0.1.0
 paths:
   /auth/register:
     post:
-      summary: Register a new user
-      security: [] # Public route
       tags:
-        - Authentication
+        - auth
+      summary: Register
+      operationId: register_auth_register_post
       requestBody:
-        required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/RegisterRequest"
+              $ref: '#/components/schemas/Body_register_auth_register_post'
+        required: true
       responses:
-        "201":
-          description: User successfully created
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthResponse"
-
+                $ref: '#/components/schemas/HTTPValidationError'
   /auth/login:
     post:
-      summary: Authenticate user and receive JWT
-      security: [] # Public route
       tags:
-        - Authentication
+        - auth
+      summary: Login
+      operationId: login_auth_login_post
       requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_login_auth_login_post'
         required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /categories/:
+    get:
+      tags:
+        - categories
+      summary: Get Categories
+      operationId: get_categories_categories__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+    post:
+      tags:
+        - categories
+      summary: Create Category
+      operationId: create_category_categories__post
+      requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
-      responses:
-        "200":
-          description: Successful login
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-
-  /users/me:
-    get:
-      summary: Get current user profile
-      tags:
-        - User
-      responses:
-        "200":
-          description: User profile retrieved
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-    patch:
-      summary: Update user profile
-      tags:
-        - User
-      requestBody:
+              $ref: '#/components/schemas/Category'
         required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /categories/bulk:
+    post:
+      tags:
+        - categories
+      summary: Create Categories
+      operationId: create_categories_categories_bulk_post
+      requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserUpdate"
+              items:
+                $ref: '#/components/schemas/Category'
+              type: array
+              title: Categories
+        required: true
       responses:
-        "200":
-          description: User profile updated
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: '#/components/schemas/HTTPValidationError'
 
-  /users/me/events:
+  /events/:
     get:
-      summary: Get events the current user is attending or hosting
       tags:
-        - User
-        - Events
+        - events
+      summary: Get Event Feed
+      operationId: get_event_feed_events__get
+      security:
+        - OAuth2PasswordBearer: []
       parameters:
-        - name: type
+        - name: radius
           in: query
-          description: Filter by attending or hosting
           required: false
           schema:
-            type: string
-            enum: [attending, hosting]
+            type: number
+            default: 50
+            title: Radius
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+              - type: 'null'
+            title: Category Id
+        - name: date_from
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date-time
+              - type: 'null'
+            title: Date From
+        - name: date_to
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: string
+                format: date-time
+              - type: 'null'
+            title: Date To
       responses:
-        "200":
-          description: List of user's events
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Event"
-
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+        - events
+      summary: Create New Event
+      operationId: create_new_event_events__post
+      security:
+        - OAuth2PasswordBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /events/me/events:
+    get:
+      tags:
+        - events
+      summary: Get User Events
+      operationId: get_user_events_events_me_events_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+  /events/hosted:
+    get:
+      tags:
+        - events
+      summary: Get Hosted Events
+      operationId: get_hosted_events_events_hosted_get
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          schema:
+            anyOf:
+              - type: integer
+              - type: 'null'
+            title: Userid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /events/{eventId}:
+    get:
+      tags:
+        - events
+      summary: Get Event
+      operationId: get_event_events__eventId__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+        - events
+      summary: Update Event
+      operationId: update_event_events__eventId__patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventUpdatePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+        - events
+      summary: Delete Event
+      operationId: delete_event_events__eventId__delete
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /events/{eventId}/attendees:
+    get:
+      tags:
+        - events
+      summary: Get Event Attendees
+      operationId: get_event_attendees_events__eventId__attendees_get
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /events/{eventId}/attend:
+    post:
+      tags:
+        - events
+      summary: Attend Event
+      operationId: attend_event_events__eventId__attend_post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+        - events
+      summary: Leave Event
+      operationId: leave_event_events__eventId__attend_delete
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /events/{eventId}/picture:
+    post:
+      tags:
+        - events
+      summary: Upload Event Picture
+      operationId: upload_event_picture_events__eventId__picture_post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Eventid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: >-
+                #/components/schemas/Body_upload_event_picture_events__eventId__picture_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /notifications/:
+    get:
+      tags:
+        - notifications
+      summary: List Notifications
+      operationId: list_notifications_notifications__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 100
+            minimum: 1
+            default: 20
+            title: Limit
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+            title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /notifications/unread-count:
+    get:
+      tags:
+        - notifications
+      summary: Get Unread Count
+      operationId: get_unread_count_notifications_unread_count_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+  /notifications/{notification_id}/read:
+    patch:
+      tags:
+        - notifications
+      summary: Mark As Read
+      operationId: mark_as_read_notifications__notification_id__read_patch
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Notification Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /notifications/mark-all-read:
+    post:
+      tags:
+        - notifications
+      summary: Mark All Read
+      operationId: mark_all_read_notifications_mark_all_read_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+  /notifications/{notification_id}/respond:
+    post:
+      tags:
+        - notifications
+      summary: Respond To Attendance
+      operationId: respond_to_attendance_notifications__notification_id__respond_post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: notification_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Notification Id
+        - name: attended
+          in: query
+          required: true
+          schema:
+            type: boolean
+            title: Attended
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /swipes/:
+    post:
+      tags:
+        - swipes
+      summary: Record User Swipe
+      operationId: record_user_swipe_swipes__post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: boolean
+            title: Status
+        - name: event_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /swipes/accepted:
+    get:
+      tags:
+        - swipes
+      summary: Get User Swipes
+      operationId: get_user_swipes_swipes_accepted_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+  /users/me:
+    get:
+      tags:
+        - users
+      summary: Read Current User
+      operationId: read_current_user_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+    patch:
+      tags:
+        - users
+      summary: Update Current User
+      operationId: update_current_user_users_me_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdatePayload'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
   /users/{userId}:
     get:
-      summary: Get public profile of another user
       tags:
-        - User
+        - users
+      summary: Get User
+      operationId: get_user_users__userId__get
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+            title: Userid
       responses:
-        "200":
-          description: Public user profile retrieved
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserPublic"
-
-  /categories:
-    get:
-      summary: Get all available event categories
-      security: [] # Overrides global JWT requirement
-      tags:
-        - Events
-      responses:
-        "200":
-          description: List of categories
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Category"
-
-  /events:
-    get:
-      summary: Get event feed (Discover)
-      description: Returns events based on user preferences and location.
-      tags:
-        - Events
-      parameters:
-        - name: lat
-          in: query
-          schema:
-            type: number
-            format: float
-        - name: long
-          in: query
-          schema:
-            type: number
-            format: float
-      responses:
-        "200":
-          description: List of events
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Event"
+                $ref: '#/components/schemas/HTTPValidationError'
+  /users/me/push-token:
     post:
-      summary: Create a new event
       tags:
-        - Events
+        - users
+      summary: Register Push Token
+      operationId: register_push_token_users_me_push_token_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EventCreate"
+              $ref: '#/components/schemas/PushTokenPayload'
+        required: true
       responses:
-        "201":
-          description: Event created successfully
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Event"
-
-  /events/{eventId}:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /users/me/picture:
+    post:
+      tags:
+        - users
+      summary: Upload User Picture
+      operationId: upload_user_picture_users_me_picture_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: >-
+                #/components/schemas/Body_upload_user_picture_users_me_picture_post
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /preferences/:
     get:
-      summary: Get event details
       tags:
-        - Events
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema:
-            type: integer
+        - preferences
+      summary: Get User Preferences
+      description: Get all preferences for the current user
+      operationId: get_user_preferences_preferences__get
       responses:
-        "200":
-          description: Event details retrieved
+        '200':
+          description: Successful Response
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Event"
-    patch:
-      summary: Update event details
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+    post:
       tags:
-        - Events
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema:
-            type: integer
+        - preferences
+      summary: Add Preference
+      description: Add a preference for the current user
+      operationId: add_preference_preferences__post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EventUpdate"
+              $ref: '#/components/schemas/PreferenceCreatePayload'
+        required: true
       responses:
-        "200":
-          description: Event updated
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Event"
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /preferences/user/{user_id}:
+    get:
+      tags:
+        - preferences
+      summary: Get Preferences For User
+      description: Get all preferences for a specific user by ID.
+      operationId: get_preferences_for_user_preferences_user__user_id__get
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /preferences/{category_id}:
     delete:
-      summary: Delete an event
       tags:
-        - Events
+        - preferences
+      summary: Remove Preference
+      description: Remove a preference for the current user
+      operationId: remove_preference_preferences__category_id__delete
+      security:
+        - OAuth2PasswordBearer: []
       parameters:
-        - name: eventId
+        - name: category_id
           in: path
           required: true
           schema:
             type: integer
+            title: Category Id
       responses:
-        "204":
-          description: Event deleted
-
-  /events/{eventId}/attendees:
-    get:
-      summary: Get a list of users attending the event
-      tags:
-        - Events
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: List of attendees
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UserPublic"
-
-  /events/{eventId}/chat:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /preferences/notifications:
     get:
-      summary: Get chat messages for an event
       tags:
-        - Chat
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema:
-            type: integer
+        - preferences
+      summary: Get Notification Preferences
+      description: Get notification delivery preferences for the current user.
+      operationId: get_notification_preferences_preferences_notifications_get
       responses:
-        "200":
-          description: List of messages
+        '200':
+          description: Successful Response
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EventChat"
-    post:
-      summary: Send a message in an event chat
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+    patch:
       tags:
-        - Chat
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema:
-            type: integer
+        - preferences
+      summary: Update Notification Preference
+      description: Upsert a single notification preference row for the current user.
+      operationId: update_notification_preference_preferences_notifications_patch
       requestBody:
-        required: true
         content:
           application/json:
             schema:
+              $ref: '#/components/schemas/NotificationPreferenceUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /preferences/bulk:
+    post:
+      tags:
+        - preferences
+      summary: Bulk Add Preferences
+      description: Add multiple preferences at once
+      operationId: bulk_add_preferences_preferences_bulk_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties: true
               type: object
-              properties:
-                message:
-                  type: string
+              title: Payload
+        required: true
       responses:
-        "201":
-          description: Message sent
-
-  /swipes:
-    post:
-      summary: Perform a swipe on an event
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /user-ratings/:
+    get:
       tags:
-        - Swipes
+        - user-ratings
+      summary: Get User Ratings
+      description: Get all ratings given by the current user
+      operationId: get_user_ratings_user_ratings__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+    post:
+      tags:
+        - user-ratings
+      summary: Create User Rating
+      description: Create a new user rating
+      operationId: create_user_rating_user_ratings__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRatingCreatePayload'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /user-ratings/received:
+    get:
+      tags:
+        - user-ratings
+      summary: Get Received Ratings
+      description: Get all ratings received by the current user
+      operationId: get_received_ratings_user_ratings_received_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+  /user-ratings/{rating_id}:
+    get:
+      tags:
+        - user-ratings
+      summary: Get User Rating
+      description: Get a specific user rating
+      operationId: get_user_rating_user_ratings__rating_id__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: rating_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Rating Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+        - user-ratings
+      summary: Update User Rating
+      description: Update a user rating (only the rater can update)
+      operationId: update_user_rating_user_ratings__rating_id__put
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: rating_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Rating Id
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SwipeRequest"
+              $ref: '#/components/schemas/UserRatingCreatePayload'
       responses:
-        "200":
-          description: Swipe recorded
-
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+        - user-ratings
+      summary: Delete User Rating
+      description: Delete a user rating (only the rater can delete)
+      operationId: delete_user_rating_user_ratings__rating_id__delete
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: rating_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Rating Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /event-ratings/:
+    get:
+      tags:
+        - event-ratings
+      summary: Get User Event Ratings
+      description: Get all event ratings given by the current user
+      operationId: get_user_event_ratings_event_ratings__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - OAuth2PasswordBearer: []
+    post:
+      tags:
+        - event-ratings
+      summary: Create Event Rating
+      description: Create a new event rating
+      operationId: create_event_rating_event_ratings__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRatingCreatePayload'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+        - OAuth2PasswordBearer: []
+  /event-ratings/event/{event_id}:
+    get:
+      tags:
+        - event-ratings
+      summary: Get Event Ratings
+      description: Get all ratings for a specific event
+      operationId: get_event_ratings_event_ratings_event__event_id__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /event-ratings/{rating_id}:
+    get:
+      tags:
+        - event-ratings
+      summary: Get Event Rating
+      description: Get a specific event rating
+      operationId: get_event_rating_event_ratings__rating_id__get
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: rating_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Rating Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+        - event-ratings
+      summary: Update Event Rating
+      description: Update an event rating (only the rater can update)
+      operationId: update_event_rating_event_ratings__rating_id__put
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: rating_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Rating Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRatingCreatePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+        - event-ratings
+      summary: Delete Event Rating
+      description: Delete an event rating (only the rater can delete)
+      operationId: delete_event_rating_event_ratings__rating_id__delete
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: rating_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Rating Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /attendance/cron/daily-prompt:
+    post:
+      tags:
+        - attendance
+      summary: Trigger Daily Attendance Prompts
+      operationId: trigger_daily_attendance_prompts_attendance_cron_daily_prompt_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /attendance/events/{event_id}/confirm:
+    post:
+      tags:
+        - attendance
+      summary: Confirm Attendance
+      operationId: confirm_attendance_attendance_events__event_id__confirm_post
+      security:
+        - OAuth2PasswordBearer: []
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            title: Event Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceConfirmPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /:
+    get:
+      summary: Root
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
 components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
   schemas:
-    # -- Auth Schemas --
-    RegisterRequest:
-      type: object
-      required: [name, email, password, age]
+    AttendanceConfirmPayload:
       properties:
-        name:
+        did_attend:
+          type: boolean
+          title: Did Attend
+      type: object
+      required:
+        - did_attend
+      title: AttendanceConfirmPayload
+    Body_login_auth_login_post:
+      properties:
+        grant_type:
+          anyOf:
+            - type: string
+              pattern: ^password$
+            - type: 'null'
+          title: Grant Type
+        username:
           type: string
+          title: Username
+        password:
+          type: string
+          format: password
+          title: Password
+        scope:
+          type: string
+          title: Scope
+          default: ''
+        client_id:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Client Id
+        client_secret:
+          anyOf:
+            - type: string
+            - type: 'null'
+          format: password
+          title: Client Secret
+      type: object
+      required:
+        - username
+        - password
+      title: Body_login_auth_login_post
+    Body_register_auth_register_post:
+      properties:
         email:
           type: string
           format: email
+          title: Email
         password:
           type: string
+          title: Password
+        full_name:
+          type: string
+          title: Full Name
         age:
           type: integer
-          minimum: 18
+          title: Age
         bio:
           type: string
-
-    LoginRequest:
+          title: Bio
+        city:
+          type: string
+          title: City
+        category_ids:
+          type: string
+          title: Category Ids
+        profile_picture:
+          type: string
+          contentMediaType: application/octet-stream
+          title: Profile Picture
       type: object
-      required: [email, password]
+      required:
+        - email
+        - password
+        - full_name
+        - age
+        - bio
+        - city
+        - category_ids
+        - profile_picture
+      title: Body_register_auth_register_post
+    Body_upload_event_picture_events__eventId__picture_post:
       properties:
-        email:
+        file:
           type: string
-          format: email
-        password:
-          type: string
-
-    AuthResponse:
+          contentMediaType: application/octet-stream
+          title: File
       type: object
+      required:
+        - file
+      title: Body_upload_event_picture_events__eventId__picture_post
+    Body_upload_user_picture_users_me_picture_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+        - file
+      title: Body_upload_user_picture_users_me_picture_post
+    Category:
+      properties:
+        id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+        - name
+      title: Category
+    EventPayload:
+      properties:
+        title:
+          type: string
+          title: Title
+        description:
+          type: string
+          title: Description
+        event_date:
+          type: string
+          format: date-time
+          title: Event Date
+        max_capacity:
+          type: integer
+          title: Max Capacity
+        street:
+          type: string
+          title: Street
+        city:
+          type: string
+          title: City
+        state:
+          type: string
+          title: State
+        zip:
+          type: string
+          title: Zip
+        category_id:
+          type: integer
+          title: Category Id
+      type: object
+      required:
+        - title
+        - description
+        - event_date
+        - max_capacity
+        - street
+        - city
+        - state
+        - zip
+        - category_id
+      title: EventPayload
+    EventRatingCreatePayload:
+      properties:
+        event_id:
+          type: integer
+          title: Event Id
+        score:
+          type: integer
+          title: Score
+        review:
+          type: string
+          title: Review
+      type: object
+      required:
+        - event_id
+        - score
+        - review
+      title: EventRatingCreatePayload
+    EventUpdatePayload:
+      properties:
+        title:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Title
+        description:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Description
+        event_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: 'null'
+          title: Event Date
+        max_capacity:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Max Capacity
+        street:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Street
+        city:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: City
+        state:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: State
+        zip:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Zip
+        category_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Category Id
+      type: object
+      title: EventUpdatePayload
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    NotificationPreferenceUpdate:
+      properties:
+        notification_type:
+          type: string
+          title: Notification Type
+        in_app_enabled:
+          anyOf:
+            - type: boolean
+            - type: 'null'
+          title: In App Enabled
+        push_enabled:
+          anyOf:
+            - type: boolean
+            - type: 'null'
+          title: Push Enabled
+      type: object
+      required:
+        - notification_type
+      title: NotificationPreferenceUpdate
+    PreferenceCreatePayload:
+      properties:
+        category_id:
+          type: integer
+          title: Category Id
+      type: object
+      required:
+        - category_id
+      title: PreferenceCreatePayload
+    PushTokenPayload:
       properties:
         token:
           type: string
-          description: JWT Access Token
-        user:
-          $ref: "#/components/schemas/User"
-
-    # -- Entity Schemas (Mapped from ER Diagram) --
-    User:
+          title: Token
       type: object
+      required:
+        - token
+      title: PushTokenPayload
+    UserRatingCreatePayload:
       properties:
-        id:
+        ratee_id:
           type: integer
+          title: Ratee Id
+        score:
+          type: integer
+          title: Score
+        comment:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Comment
+      type: object
+      required:
+        - ratee_id
+        - score
+      title: UserRatingCreatePayload
+    UserUpdatePayload:
+      properties:
         name:
-          type: string
-        email:
-          type: string
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Name
         bio:
-          type: string
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Bio
         age:
-          type: integer
-        profile_pic:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-
-    Event:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Age
+        city:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: City
       type: object
+      title: UserUpdatePayload
+    ValidationError:
       properties:
-        id:
-          type: integer
-        creator_id:
-          type: integer
-        category_id:
-          type: integer
-        title:
+        loc:
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          type: array
+          title: Location
+        msg:
           type: string
-        description:
+          title: Message
+        type:
           type: string
-        event_date:
-          type: string
-          format: date-time
-        location_name:
-          type: string
-        lat:
-          type: number
-          format: float
-        long:
-          type: number
-          format: float
-        event_pic:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-
-    UserPublic:
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
       type: object
-      description: A public-facing user profile that hides sensitive information like email.
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-        bio:
-          type: string
-        age:
-          type: integer
-        profile_pic:
-          type: string
-
-    Category:
-      type: object
-      properties:
-        id:
-          type: integer
-        name:
-          type: string
-          example: "Sports"
-
-    EventCreate:
-      type: object
-      required: [category_id, title, event_date, lat, long]
-      properties:
-        category_id:
-          type: integer
-        title:
-          type: string
-        description:
-          type: string
-        event_date:
-          type: string
-          format: date-time
-        location_name:
-          type: string
-        lat:
-          type: number
-          format: float
-        long:
-          type: number
-          format: float
-        event_pic:
-          type: string
-
-    EventUpdate:
-      type: object
-      properties:
-        category_id:
-          type: integer
-        title:
-          type: string
-        description:
-          type: string
-        event_date:
-          type: string
-          format: date-time
-        location_name:
-          type: string
-        lat:
-          type: number
-          format: float
-        long:
-          type: number
-          format: float
-        event_pic:
-          type: string
-
-    UserUpdate:
-      type: object
-      properties:
-        name:
-          type: string
-        bio:
-          type: string
-        profile_pic:
-          type: string
-
-    SwipeRequest:
-      type: object
-      required: [event_id, is_interested]
-      properties:
-        event_id:
-          type: integer
-        is_interested:
-          type: boolean
-
-    EventChat:
-      type: object
-      properties:
-        id:
-          type: integer
-        event_id:
-          type: integer
-        user_id:
-          type: integer
-        message:
-          type: string
-        sent_at:
-          type: string
-          format: date-time
+      required:
+        - loc
+        - msg
+        - type
+      title: ValidationError
+  securitySchemes:
+    OAuth2PasswordBearer:
+      type: oauth2
+      flows:
+        password:
+          scopes: {}
+          tokenUrl: /auth/login

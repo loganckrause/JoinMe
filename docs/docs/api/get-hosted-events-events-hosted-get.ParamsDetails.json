@@ -1,0 +1,1 @@
+{"parameters":[{"name":"userId","in":"query","required":false,"schema":{"anyOf":[{"type":"integer"},{"type":"null"}],"title":"Userid"}}]}

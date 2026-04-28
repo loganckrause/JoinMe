@@ -1,1 +1,0 @@
-{"responses":{"200":{"description":"List of messages","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"event_id":{"type":"integer"},"user_id":{"type":"integer"},"message":{"type":"string"},"sent_at":{"type":"string","format":"date-time"}},"title":"EventChat"}}}}}}}

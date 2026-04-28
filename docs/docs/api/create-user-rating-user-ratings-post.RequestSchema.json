@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"ratee_id":{"type":"integer","title":"Ratee Id"},"score":{"type":"integer","title":"Score"},"comment":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Comment"}},"type":"object","required":["ratee_id","score"],"title":"UserRatingCreatePayload"}}},"required":true}}

@@ -1,1 +1,0 @@
-{"parameters":[{"name":"eventId","in":"path","required":true,"schema":{"type":"integer"}}]}

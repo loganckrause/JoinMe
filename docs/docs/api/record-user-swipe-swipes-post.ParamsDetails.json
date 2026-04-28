@@ -1,0 +1,1 @@
+{"parameters":[{"name":"status","in":"query","required":true,"schema":{"type":"boolean","title":"Status"}},{"name":"event_id","in":"query","required":true,"schema":{"type":"integer","title":"Event Id"}}]}

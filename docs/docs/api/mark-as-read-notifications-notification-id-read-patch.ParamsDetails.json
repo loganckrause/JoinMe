@@ -1,0 +1,1 @@
+{"parameters":[{"name":"notification_id","in":"path","required":true,"schema":{"type":"integer","title":"Notification Id"}}]}

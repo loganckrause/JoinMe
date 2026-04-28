@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"category_id":{"type":"integer","title":"Category Id"}},"type":"object","required":["category_id"],"title":"PreferenceCreatePayload"}}},"required":true}}

@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"event_id":{"type":"integer","title":"Event Id"},"score":{"type":"integer","title":"Score"},"review":{"type":"string","title":"Review"}},"type":"object","required":["event_id","score","review"],"title":"EventRatingCreatePayload"}}},"required":true}}
