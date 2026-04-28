@@ -396,7 +396,7 @@ async def get_event_attendees(eventId: int, session: Session = Depends(get_sessi
                 )
                 if pic_name:
                     pic_url = generate_signed_url(pic_name)
-                attendees.append({"id": user.id, "name": user.name, "user_picture": pic_url})
+            attendees.append({"id": user.id, "name": user.name, "user_picture": pic_url})
     return attendees
 
 
