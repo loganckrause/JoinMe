@@ -21,6 +21,7 @@ from app.models.event_chat import EventChat
 from app.models.event_rating import EventRating
 from app.models.event import Event
 from app.models.notification import Notification
+from app.models.notification_preference import NotificationPreference
 from app.models.swipe import Swipe
 from app.models.user_rating import UserRating
 from app.models.user import User
@@ -44,6 +45,7 @@ def seed_data():
         session.exec(delete(UserRating))
         session.exec(delete(Attendance))
         session.exec(delete(Notification))
+        session.exec(delete(NotificationPreference))
         session.exec(delete(Swipe))
         session.exec(delete(EventChat))
         session.exec(delete(UserPreference))
@@ -80,7 +82,7 @@ def seed_data():
                 bio="Love sports and gaming",
                 age=25,
                 city="New York",
-                user_picture=b"",
+                user_picture=None,
             ),
             User(
                 name="jane_smith",
@@ -89,7 +91,7 @@ def seed_data():
                 bio="Fitness enthusiast and yogi",
                 age=28,
                 city="New York",
-                user_picture=b"",
+                user_picture=None,
             ),
             User(
                 name="mike_jones",
@@ -98,7 +100,7 @@ def seed_data():
                 bio="Music lover and tech geek",
                 age=30,
                 city="New York",
-                user_picture=b"",
+                user_picture=None,
             ),
             User(
                 name="sarah_williams",
@@ -107,7 +109,7 @@ def seed_data():
                 bio="Artist and outdoor adventure seeker",
                 age=26,
                 city="New York",
-                user_picture=b"",
+                user_picture=None,
             ),
             User(
                 name="alex_brown",
@@ -116,7 +118,7 @@ def seed_data():
                 bio="Chef and food lover",
                 age=32,
                 city="New York",
-                user_picture=b"",
+                user_picture=None,
             ),
         ]
         for user in users:
