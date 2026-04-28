@@ -110,7 +110,7 @@ const config: Config = {
             },
             {
               label: 'API Specifications',
-              to: '/docs/api/joinme-api',
+              to: '/docs/api/fastapi',
             },
           ],
         },

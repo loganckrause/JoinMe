@@ -24,14 +24,14 @@ The JoinMe API is a RESTful API built with FastAPI. It provides endpoints for us
 
 #### POST Arguments
 
-| Argument | Description |
-| :--- | :--- |
-| `title` | Name of the event. |
-| `description` | Details of the activity. |
-| `time` | When the event starts. |
-| `max_capacity` | Maximum number of attendees. |
-| `location` | Address |
-| `user_id` | Id of user who is event organizer. |
+| Argument       | Description                        |
+| :------------- | :--------------------------------- |
+| `title`        | Name of the event.                 |
+| `description`  | Details of the activity.           |
+| `time`         | When the event starts.             |
+| `max_capacity` | Maximum number of attendees.       |
+| `location`     | Address                            |
+| `user_id`      | Id of user who is event organizer. |
 
 #### Return
 
@@ -60,13 +60,16 @@ The JoinMe API is a RESTful API built with FastAPI. It provides endpoints for us
 **Return**: Success message confirming deletion.
 
 **Exceptions thrown**:
+
 - `403 Forbidden`: User is trying to delete an event they did not organize.
 - `404 Not Found`: The event ID does not exist.
 
 ### Get event infromation
+
 **Purpose**: Allows a user to get details about existing event.
 
 ### Update event infromation
+
 **Purpose**: Allows a user to edit details about existing event.
 
 ## User
