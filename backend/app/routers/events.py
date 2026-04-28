@@ -21,7 +21,6 @@ from app.models.category import Category
 from app.core.dependencies import get_current_user as get_auth_user
 from app.models.attendance import Attendance
 from app.models.swipe import Swipe
-from app.models.event_chat import EventChat
 from app.models.event_rating import EventRating
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -363,7 +362,6 @@ async def delete_event(
             background_tasks=background_tasks,
         )
 
-    session.exec(sql_delete(EventChat).where(EventChat.event_id == eventId))
     session.exec(sql_delete(EventRating).where(EventRating.event_id == eventId))
     session.exec(sql_delete(Swipe).where(Swipe.event_id == eventId))
     session.exec(sql_delete(Attendance).where(Attendance.event_id == eventId))
@@ -396,7 +394,9 @@ async def get_event_attendees(eventId: int, session: Session = Depends(get_sessi
                 )
                 if pic_name:
                     pic_url = generate_signed_url(pic_name)
-                attendees.append({"id": user.id, "name": user.name, "user_picture": pic_url})
+                attendees.append(
+                    {"id": user.id, "name": user.name, "user_picture": pic_url}
+                )
     return attendees
 
 

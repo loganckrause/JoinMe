@@ -1,0 +1,186 @@
+classDiagram
+    direction LR
+
+    %% --- Data Models (app/models) ---
+
+    class User {
+        +int id
+        +str name
+        +str email
+        +str hashed_password
+        +str bio
+        +str profile_picture_url
+        +int age
+        +str city
+        +float latitude
+        +float longitude
+        +float reputation_score
+        +list~Event~ hosted_events
+        +list~Preference~ preferences
+        +list~Attendee~ attending
+    }
+
+    class Event {
+        +int id
+        +str title
+        +str description
+        +datetime time
+        +str location
+        +int max_capacity
+        +str picture_url
+        +int host_id
+        +User host
+        +list~Attendee~ attendees
+    }
+
+    class Category {
+        +int id
+        +str name
+        +list~Preference~ preferences
+    }
+
+    class Swipe {
+        <<Conceptual>>
+        +int user_id
+        +int event_id
+        +bool liked
+    }
+
+    class Notification {
+        <<Conceptual>>
+        +int id
+        +str message
+        +bool is_read
+        +int user_id
+        +User user
+    }
+
+    class Preference {
+        <<JoinTable>>
+        +int user_id
+        +int category_id
+        +User user
+        +Category category
+    }
+
+    class Attendee {
+        <<JoinTable>>
+        +int user_id
+        +int event_id
+        +User user
+        +Event event
+    }
+
+    class UserRating {
+        +int id
+        +int rater_id
+        +int ratee_id
+        +int score
+        +str comment
+    }
+
+    class EventRating {
+        +int id
+        +int user_id
+        +int event_id
+        +int score
+        +str review
+    }
+
+    class NotificationPreference {
+        +int id
+        +int user_id
+        +str notification_type
+        +bool in_app_enabled
+        +bool push_enabled
+    }
+
+    %% --- Core Logic (app/core & app/services) ---
+
+    class StorageService {
+        <<Service>>
+        +upload_image_to_gcs(file, folder) str
+        +generate_signed_url(blob_name) str
+    }
+
+    class AuthService {
+        <<Service>>
+        +register_user(user_data, profile_picture) User
+        +authenticate_user(email, password) bool
+        +create_access_token(data) str
+        +get_current_user(token) User
+    }
+
+    class UserService {
+        <<Service>>
+        +get_user_by_id(user_id) User
+        +get_current_user_profile(user) User
+        +update_user_profile(user, data) User
+    }
+
+    class EventService {
+        <<Service>>
+        +create_event(event_data, user) Event
+    }
+
+    class PreferenceService {
+        <<Service>>
+        +get_user_preferences(user_id) list~Preference~
+        +update_user_preferences(user, category_ids) list~Preference~
+    }
+
+    %% --- API Endpoints (app/api/routers) ---
+
+    class AuthRouter {
+        <<Router>>
+        +POST_login
+        +POST_register
+    }
+
+    class UserRouter {
+        <<Router>>
+        +GET_me
+        +PATCH_me
+        +POST_me_picture
+        +GET_user_id
+    }
+
+    class EventRouter {
+        <<Router>>
+        +POST_create
+    }
+
+    class PreferenceRouter {
+        <<Router>>
+        +GET_list
+        +GET_user_id
+    }
+
+    %% --- Relationships ---
+
+    User "1" -- "0..*" Event : "hosts"
+    User "1" -- "0..*" Preference : "has"
+    Category "1" -- "0..*" Preference : "is subject of"
+    User "1" -- "0..*" Attendee : "attends"
+    Event "1" -- "0..*" Attendee : "is attended by"
+    User "1" -- "0..*" UserRating : "rates (rater)"
+    User "1" -- "0..*" UserRating : "is rated (ratee)"
+    User "1" -- "0..*" EventRating : "rates"
+    Event "1" -- "0..*" EventRating : "is rated"
+    User "1" -- "0..*" NotificationPreference : "has"
+
+    AuthRouter ..> AuthService : uses
+    UserRouter ..> UserService : uses
+    UserRouter ..> StorageService : uses
+    UserRouter ..> AuthService : uses
+    EventRouter ..> EventService : uses
+    EventRouter ..> AuthService : uses
+    PreferenceRouter ..> PreferenceService : uses
+
+    AuthService ..> UserService : uses
+    AuthService ..> PreferenceService : uses
+    AuthService ..> StorageService : uses
+
+    UserService ..> User
+    EventService ..> Event
+    PreferenceService ..> Preference
