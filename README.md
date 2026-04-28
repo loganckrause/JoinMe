@@ -38,6 +38,7 @@ JoinMe is a mobile app that helps you discover events happening around you — t
 - **Ratings & reputation** — rate events and other users to build community trust
 - **Attendance tracking** — RSVP and confirm attendance after events
 - **User profiles & preferences** — customize interests, profile photo, and location
+- **Push notifications** — Expo Push (APNs/FCM) with per-user, per-type preferences (event updates, attendance, ratings) — see the Notification settings screenshot above
 
 ## Tech Stack
 
@@ -99,6 +100,53 @@ cd docs
 npm install
 npm run start                           # Docusaurus on :3000
 ```
+
+## Mobile builds & TestFlight
+
+### Expo configuration
+
+`frontend/app.json` is the source of truth for the mobile app's identity and plugins:
+
+| Field | Value |
+|---|---|
+| `name` / `slug` | `JoinMe Temple` / `joinme` |
+| `bundleIdentifier` (iOS) | `app.joinme` |
+| `extra.eas.projectId` | `0744a90e-3125-48a2-9350-299cfe08a147` (owner `kp007`) |
+| Plugins | `expo-router`, `expo-splash-screen`, `expo-notifications`, `expo-apple-authentication` |
+| Experiments | `typedRoutes`, `reactCompiler`, New Architecture (`newArchEnabled`) |
+| Android | adaptive icon (white background) + edge-to-edge |
+
+### EAS build profiles
+
+`frontend/eas.json` defines three profiles for building with [EAS Build](https://docs.expo.dev/build/introduction/):
+
+| Profile | Distribution | Use |
+|---|---|---|
+| `development` | internal | Dev client builds for on-device debugging (no simulator) |
+| `preview` | internal | Release-config builds for internal testers |
+| `production` | App Store | Auto-increments build number; injects production `EXPO_PUBLIC_API_URL` (Cloud Run) |
+
+### Build & submit to TestFlight
+
+From `frontend/`:
+
+```bash
+# Build a production iOS binary on EAS infrastructure
+eas build --platform ios --profile production
+
+# Submit the latest production build to App Store Connect / TestFlight
+eas submit --platform ios --profile production
+```
+
+`eas submit` is pre-configured with App Store Connect app ID **`6761838477`** in `eas.json` — no extra flags needed.
+
+### Push notifications
+
+Delivery goes through **[Expo Push](https://docs.expo.dev/push-notifications/overview/)**, which fans out to APNs (iOS) and FCM (Android) transparently — no separate Apple/Google credentials to manage in this repo.
+
+- **Frontend** ([`frontend/services/notifications.ts`](frontend/services/notifications.ts)) — requests permission, fetches an Expo push token via `Notifications.getExpoPushTokenAsync()`, and POSTs it to `/users/me/push-token`. The handler in `app/_layout.tsx` configures foreground banner + sound + badge behavior.
+- **Backend** ([`backend/app/core/notifications.py`](backend/app/core/notifications.py)) — calls `https://exp.host/--/api/v2/push/send` via FastAPI `BackgroundTasks` whenever a notification is created, gated by per-user preferences.
+- **Preferences** — the `NotificationPreference` table stores per-type opt-ins (in-app and push independently) for event updates, cancellations, attendance changes, and ratings. Users manage these from the Notification settings screen.
 
 ## Documentation
 
