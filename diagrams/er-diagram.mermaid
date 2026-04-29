@@ -1,19 +1,21 @@
 erDiagram
     USER ||--o{ EVENT : creates
     USER ||--o{ SWIPE : performs
-    USER ||--o{ USER_PREFERENCE : selects
-    USER ||--o{ EVENT_CHAT : sends
+    USER ||--o{ USER_PREFERENCE : has
     USER ||--o{ NOTIFICATION : receives
-    USER ||--o{ USER_RATING : receives_rating
-    USER ||--o{ EVENT_RATING : gives_rating
+    USER |o--o{ USER_RATING : gives
+    USER ||--o{ USER_RATING : receives
+    USER ||--o{ EVENT_RATING : gives
     USER ||--o{ ATTENDANCE : attends
-
+    USER ||--o{ NOTIFICATION_PREFERENCE : has
 
     EVENT ||--o{ SWIPE : receives
-    EVENT ||--o{ EVENT_CHAT : hosts
-    
-    CATEGORY ||--o{ EVENT : categorizes
-    CATEGORY ||--o{ USER_PREFERENCE : used_in 
+    EVENT ||--o{ ATTENDANCE : has_attendees
+    EVENT ||--o{ EVENT_RATING : has_ratings
+    EVENT |o--o{ NOTIFICATION : is_about
+
+    CATEGORY ||--o{ EVENT : belongs_to
+    CATEGORY ||--o{ USER_PREFERENCE : is_for
 
     USER {
         int id PK
@@ -22,7 +24,11 @@ erDiagram
         varchar password_hash
         text bio
         int age
-        varchar profile_pic
+        varchar city
+        float latitude
+        float longitude
+        text user_picture
+        varchar expo_push_token
         timestamp created_at
     }
     EVENT {
@@ -32,17 +38,21 @@ erDiagram
         varchar title
         text description
         datetime event_date
-        varchar location_name
-        decimal lat 
-        decimal long
-        varchar event_pic
+        int max_capacity
+        varchar street
+        varchar city
+        varchar state
+        varchar zip
+        float latitude
+        float longitude
+        text event_picture
         timestamp created_at
     }
     USER_RATING {
         int id PK
-        int rater_id FK 
-        int ratee_id FK 
-        int score 
+        int rater_id FK
+        int ratee_id FK
+        int score
         text comment
         timestamp created_at
     }
@@ -52,12 +62,16 @@ erDiagram
         int event_id FK
         int score
         text review
+        timestamp sent_at
     }
     ATTENDANCE {
         int id PK
         int user_id FK
         int event_id FK
+        timestamp created_at
         timestamp check_in_time
+        boolean did_attend
+        boolean prompted
     }
     CATEGORY {
         int id PK
@@ -71,19 +85,21 @@ erDiagram
         timestamp created_at
     }
     USER_PREFERENCE {
-        int user_id FK
-        int category_id FK
-    }
-    EVENT_CHAT {
-        int id PK
-        int event_id FK
-        int user_id FK
-        text message
-        timestamp sent_at
+        int user_id PK, FK
+        int category_id PK, FK
     }
     NOTIFICATION {
         int id PK
         int user_id FK
+        int event_id FK
         varchar content
         boolean is_read
+        varchar notification_type
+        timestamp created_at
+    }
+    NOTIFICATION_PREFERENCE {
+        int user_id PK, FK
+        varchar notification_type PK
+        boolean in_app_enabled
+        boolean push_enabled
     }
