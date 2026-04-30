@@ -76,7 +76,7 @@ export default function AllEventsScreen() {
         >
             <ThemedView style={styles.topBar}>
                 <View style={styles.side}>
-                    <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+                    <TouchableOpacity testID="sidebar" onPress={() => setSidebarOpen(true)}>
                         <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                     </TouchableOpacity>
                 </View>

@@ -112,7 +112,7 @@ export default function CompleteProfileScreen() {
                 <ThemedText type="title" style={styles.title}>Complete{'\n'}your profile</ThemedText>
 
                 {/* Profile photo picker */}
-                <TouchableOpacity style={styles.photoWrapper} onPress={pickImage} activeOpacity={0.8}>
+                <TouchableOpacity testID="imagepicker" style={styles.photoWrapper} onPress={pickImage} activeOpacity={0.8}>
                     {photoUri ? (
                         <>
                             <Image source={{ uri: photoUri }} style={styles.photo} />

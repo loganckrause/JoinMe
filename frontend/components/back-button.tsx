@@ -3,9 +3,9 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-export function BackButton() {
+export function BackButton(props) {
     return (
-        <TouchableOpacity
+        <TouchableOpacity {...props}
             onPress={() => router.back()}
             style={{ alignSelf: 'flex-start' }}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

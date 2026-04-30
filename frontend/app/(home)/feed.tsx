@@ -116,12 +116,12 @@ export default function FeedScreen() {
         <GestureHandlerRootView style={{ flex: 1 }}>
 
             <ThemedView style={styles.topBar}>
-                <TouchableOpacity onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <TouchableOpacity testID="sidebar" onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
-                <ThemedText type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
+                <ThemedText testID="mainpage" type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
                 <ThemedView style={styles.headerRight}>
-                    <TouchableOpacity onPress={() => setFilterModalOpen(true)}>
+                    <TouchableOpacity testID="filterbutton" onPress={() => setFilterModalOpen(true)}>
                         <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
                         {hasActiveFilters && <ThemedView style={styles.filterDot} />}
                     </TouchableOpacity>
@@ -129,7 +129,7 @@ export default function FeedScreen() {
                 </ThemedView>
             </ThemedView>
 
-            <ThemedView style={styles.container}>
+            <ThemedView testID="event" style={styles.container}>
 
                 {loading ? (
                     <ThemedView style={styles.emptyState}>

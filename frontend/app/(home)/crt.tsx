@@ -151,7 +151,7 @@ export default function CrtEvntScreen() {
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
             <ThemedView style={styles.container}>
-                <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+                <TouchableOpacity testID="sidebar" onPress={() => setSidebarOpen(true)}>
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
                 <ThemedText style={styles.title}>Create Event</ThemedText>
@@ -167,6 +167,7 @@ export default function CrtEvntScreen() {
                 <ThemedText style={styles.t2}>Event Name</ThemedText>
                 <ThemedView style={styles.inputContainer}>
                     <TextInput
+                        testID="eventname"
                         style={styles.input}
                         value={eventName}
                         onChangeText={setEventName}
@@ -328,7 +329,7 @@ export default function CrtEvntScreen() {
                         value={String(count)}
                     />
                     <ThemedView style={styles.buttRow}>
-                        <TouchableOpacity style={styles.moreButt}
+                        <TouchableOpacity testID="plusbutton" style={styles.moreButt}
                             onPress={() => setCount(count + 1)}
                             style={styles.moreButt}
                             >
