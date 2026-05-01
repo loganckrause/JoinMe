@@ -1,0 +1,99 @@
+appId: host.exp.Exponent
+---
+- launchApp:
+    clearState: true
+- tapOn: JoinMe Temple
+- waitForAnimationToEnd
+- tapOn: Continue
+- tapOn:
+    point: "50%,10%"
+- tapOn: Login
+- tapOn: Enter your email
+- inputText: john@example.com
+- tapOn: Enter your password
+- inputText: password123
+- tapOn: {id: loginbutton}
+- tapOn: {id: loginbutton}
+- tapOn: Not now
+- assertVisible: JoinMe
+- tapOn: {id: filterbutton}
+- assertVisible: Filters
+- tapOn: Gaming
+- tapOn: Apply
+- tapOn: {id: event}
+- assertVisible: Organizer
+- assertVisible: Description
+- tapOn: {id: backbutton}
+- assertVisible: JoinMe
+- tapOn: {id: sidebar}
+- tapOn: {id: newevent}
+- tapOn: {id: eventname}
+- inputText: Basketball Runs
+- tapOn: Street Address
+- inputText: 1800 N Broad St
+- tapOn: City
+- inputText: Philadelphia
+- tapOn: State
+- inputText: PA
+- tapOn: Zip
+- inputText: 19121
+- tapOn: Location
+- repeat:
+    while:
+      notVisible: {id: plusbutton}
+    commands:
+      - scroll
+- assertVisible: "2"
+- tapOn: {id: plusbutton}
+- tapOn: {id: plusbutton}
+- assertVisible: "4"
+- tapOn: Publish Event
+- assertVisible: Missing info
+- tapOn: OK
+- tapOn: What should people expect? Mention any important details.
+- inputText: Basketball runs at Pearson, all skill levels welcome
+- tapOn: Description
+- tapOn: Publish Event
+- assertVisible: Missing info
+- tapOn: OK
+- tapOn: Sports
+- tapOn: Publish Event
+- assertVisible: Participants
+- tapOn: {id: backbutton}
+- swipe:
+    direction: DOWN
+- tapOn: {id: sidebar}
+- tapOn: {id: allevents}
+- swipe:
+    direction: UP
+- swipe:
+    direction: DOWN
+- tapOn: {id: sidebar}
+- tapOn: {id: profile}
+- tapOn: See events
+- tapOn: 
+    point: "50%, 40%"
+- tapOn: Delete
+- waitForAnimationToEnd
+- tapOn: 
+    point: "55%, 55%"
+- swipe:
+    direction: UP
+- swipe:
+    direction: DOWN
+- tapOn: {id: sidebar}
+- tapOn: {id: acceptedevents}
+- assertVisible: Accepted Events
+- tapOn: {id: sidebar}
+- tapOn: {id: profile}
+- tapOn: Edit Profile
+- tapOn: 25
+- eraseText
+- inputText: 26
+- tapOn: Age
+- tapOn: Save Changes
+- assertVisible: "26"
+- tapOn: {id: sidebar}
+- tapOn: {id: logout}
+- assertVisible: Sign Up
+- assertVisible: Login

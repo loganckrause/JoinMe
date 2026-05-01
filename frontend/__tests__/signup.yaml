@@ -1,0 +1,91 @@
+appId: host.exp.Exponent
+---
+- launchApp:
+    clearState: true
+- assertVisible: JoinMe Temple
+- tapOn: JoinMe Temple
+- waitForAnimationToEnd
+- tapOn: Continue
+- tapOn:
+    point: "50%,10%"
+- assertVisible: JoinMe
+- tapOn: Login
+- assertVisible: Email
+- tapOn: {id: backbutton}
+- tapOn: Sign Up
+- assertVisible: Sign-up
+- tapOn: {id: backbutton}
+- assertVisible: JoinMe
+- assertVisible: Login
+- tapOn: Sign Up
+- tapOn: Enter your first name
+- inputText: First
+- tapOn: Enter your last name
+- inputText: Last
+- tapOn: mm/dd/yyyy
+- inputText: May 08, 2003
+- tapOn: Date of birth
+- tapOn: Enter your city
+- inputText: Philadelphia
+- tapOn: City
+- tapOn: Enter your email
+- inputText: example@
+- tapOn: Email
+- tapOn: Enter your password
+- inputText: 123
+- tapOn: Password
+- tapOn: Confirm your password
+- inputText: 123
+- tapOn: Confirm password
+- tapOn: {id: signupbutton}
+- assertVisible: Invalid email
+- tapOn: OK
+- tapOn: Enter your email
+- eraseText
+- inputText: example@gmail.com
+- tapOn: Email
+- tapOn: {id: signupbutton}
+- assertVisible: Invalid date of birth
+- tapOn: OK
+- tapOn: mm/dd/yyyy
+- eraseText
+- inputText: 01/02/2003
+- tapOn: Date of birth
+- tapOn: {id: signupbutton}
+- assertVisible: Choose your interests
+- tapOn: Next
+- assertVisible: Choose your interests
+- tapOn: Sports
+- tapOn: Next
+- assertVisible: Complete your profile
+- tapOn: Finish
+- assertVisible: Incomplete Profile
+- tapOn: OK
+- tapOn: Describe yourself
+- inputText: My bio
+- tapOn: {id: imagepicker}
+- tapOn:
+    point: "50%,45%"
+- waitForAnimationToEnd
+- tapOn:
+    point: "50%,45%"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- tapOn:
+    point: "50%,45%"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- tapOn:
+    point: "50%, 45%"
+- waitForAnimationToEnd
+- waitForAnimationToEnd
+- tapOn:
+    point: "95%,90%"
+- waitForAnimationToEnd
+- tapOn: Finish
+- assertVisible: JoinMe

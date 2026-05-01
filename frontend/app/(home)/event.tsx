@@ -204,7 +204,7 @@ export default function EventScreen() {
                         source={{ uri: event?.image }}
                         style={{ width: '100%', height: '100%' }}
                     />
-                    <TouchableOpacity activeOpacity={0.7} onPress={() => router.back()} style={styles.backArrow}>
+                    <TouchableOpacity testID="backbutton" activeOpacity={0.7} onPress={() => router.back()} style={styles.backArrow}>
                         <ThemedText style={styles.bA}>←</ThemedText>
                     </TouchableOpacity>
                 </ThemedView>

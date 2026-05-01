@@ -1,0 +1,30 @@
+appId: host.exp.Exponent
+---
+- launchApp:
+    clearState: true
+- assertVisible: JoinMe Temple
+- tapOn: JoinMe Temple
+- waitForAnimationToEnd
+- tapOn: Continue
+- tapOn:
+    point: "50%,10%"
+- assertVisible: JoinMe
+- tapOn: Login
+- tapOn: Sign Up
+- tapOn: Sign Up
+- assertVisible: Sign-up
+- tapOn: {id: backbutton}
+- tapOn: Enter your email
+- inputText: john@example.com
+- tapOn: Enter your password
+- inputText: password12
+- tapOn: {id: loginbutton}
+- tapOn: {id: loginbutton}
+- assertVisible: Login Failed
+- tapOn: OK
+- tapOn: Enter your password
+- inputText: ""
+- inputText: password123
+- tapOn: {id: loginbutton}
+- tapOn: {id: loginbutton}
+- assertVisible: {id: mainpage}

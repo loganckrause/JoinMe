@@ -26,9 +26,10 @@ type MenuItemProps = {
     active?: boolean;
 };
 
-function MenuItem({ icon, label, onPress, active }: MenuItemProps) {
+function MenuItem({ icon, label, onPress, active, testID}: MenuItemProps & { testID?: string }) {
     return (
         <TouchableOpacity
+            testID={testID}
             onPress={onPress}
             style={[styles.menuItem, active && styles.menuItemActive]}
             activeOpacity={0.7}
@@ -96,7 +97,7 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                                 <IconSymbol name="person.fill" color="#888" size={24}  />
                             </ThemedView>
                         )}
-                        <ThemedText type="defaultSemiBold" style={styles.userName}>
+                        <ThemedText testID="profile" type="defaultSemiBold" style={styles.userName}>
                             {user.name}
                         </ThemedText>
                     </ThemedView>
@@ -121,18 +122,21 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                     <MenuItem
                         icon="checkmark.circle"
                         label="Accepted Events"
+                        testID="acceptedevents"
                         active={pathname === '/acceptedevents'}
                         onPress={() => navigate('/acceptedevents')}
                     />
                     <MenuItem
                         icon="calendar"
                         label="All Events"
+                        testID="allevents"
                         active={pathname === '/all-events'}
                         onPress={() => navigate('/all-events')}
                     />
                     <MenuItem
                         icon="plus"
                         label="Organize New Event"
+                        testID="newevent"
                         active={pathname === '/crt'}
                         onPress={() => navigate('/crt')}
 
@@ -142,6 +146,7 @@ export default function Sidebar({ visible, onClose, user }: SidebarProps) {
                     <MenuItem
                         icon="rectangle.portrait.and.arrow.right"
                         label="Logout"
+                        testID="logout"
                         onPress={handleLogout}
                     />
                 </ThemedView>

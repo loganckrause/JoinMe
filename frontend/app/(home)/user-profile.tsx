@@ -124,7 +124,7 @@ export default function UserProfile() {
     <ScrollView style={{ flex: 1 , paddingHorizontal: 20}}>
       <View style={styles.topBar}>
           {isFromEvent ? <BackButton /> : (
-            <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+            <TouchableOpacity testID="sidebar" onPress={() => setSidebarOpen(true)}>
                 <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
             </TouchableOpacity>
           )}

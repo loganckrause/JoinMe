@@ -47,7 +47,7 @@ export default function LoginScreen() {
         <ParallaxScrollView
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
-            <BackButton />
+            <BackButton testID="backbutton"/>
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Login</ThemedText>
                 <ThemedView style={styles.inputContainer}>
@@ -83,7 +83,7 @@ export default function LoginScreen() {
                         </TouchableOpacity>
                     </ThemedView>
                 </ThemedView>
-                <TouchableOpacity onPress={handleLogin} disabled={loading}>
+                <TouchableOpacity testID="loginbutton" onPress={handleLogin} disabled={loading}>
                     <ThemedText type="defaultSemiBold" style={styles.button}>
                         {loading ? 'Logging in...' : 'Login'}
                     </ThemedText>

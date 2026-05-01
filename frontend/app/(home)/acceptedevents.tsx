@@ -42,7 +42,7 @@ export default function AcceptedEventsScreen() {
         <ScrollView style={{ flex: 1, backgroundColor: '#000000ff' }}>
             <ThemedView style={styles.topBar}>
                 <ThemedView style={styles.side}>
-                    <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+                    <TouchableOpacity testID="sidebar" onPress={() => setSidebarOpen(true)}>
                         <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                     </TouchableOpacity>
                 </ThemedView>

@@ -86,7 +86,7 @@ export default function SignupScreen() {
             contentContainerStyle={{ flexGrow: 1 }}
             headerBackgroundColor={{ light: '#fff', dark: '#0a0a0bff'}}
         >
-            <BackButton />
+            <BackButton testID="backbutton"/>
             <ThemedView style={styles.container}>
                 <ThemedText type="title" style={styles.title}>Sign-up</ThemedText>
                 <ThemedView style={styles.inputContainer}>
@@ -174,7 +174,7 @@ export default function SignupScreen() {
                     </ThemedView>
                 </ThemedView>
             </ThemedView>
-            <TouchableOpacity onPress={handleSignupPress}>
+            <TouchableOpacity testID="signupbutton" onPress={handleSignupPress}>
                 <ThemedText type="defaultSemiBold" style={styles.button}>Sign-up</ThemedText>
             </TouchableOpacity>
         </ParallaxScrollView>
