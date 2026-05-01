@@ -99,6 +99,7 @@ async def get_event_feed(
     stmt = select(Event, Category.name).join(
         Category, Category.id == Event.category_id, isouter=True
     )
+    stmt = stmt.where(Event.creator_id != current_user.id)
     if category_id is not None:
         stmt = stmt.where(Event.category_id == category_id)
     if date_from is not None:
@@ -396,7 +397,7 @@ async def get_event_attendees(eventId: int, session: Session = Depends(get_sessi
                 )
                 if pic_name:
                     pic_url = generate_signed_url(pic_name)
-                attendees.append({"id": user.id, "name": user.name, "user_picture": pic_url})
+            attendees.append({"id": user.id, "name": user.name, "user_picture": pic_url})
     return attendees
 
 

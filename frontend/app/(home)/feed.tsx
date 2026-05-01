@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, interpolate, runOnJS } from 'react-native-reanimated';
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -19,7 +20,6 @@ export default function FeedScreen() {
     const [queue, setQueue] = useState<EventCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    // RESOLVED: kept both filterModal state (main) and token (HEAD)
     const [filterModalOpen, setFilterModalOpen] = useState(false);
     const [filters, setFilters] = useState<EventFilters>({});
     const token = useAuthStore((state) => state.token);
@@ -37,7 +37,7 @@ export default function FeedScreen() {
             try {
                 setLoading(true);
                 setError(null);
-                // RESOLVED: kept new signature with radius + filters (main)
+
                 const events = await fetchEvents(filters.radius || 50, token, filters);
                 if (mounted) setQueue(events);
             } catch (loadError) {
@@ -119,7 +119,11 @@ export default function FeedScreen() {
                 <TouchableOpacity testID="sidebar" onPress={() => setSidebarOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <IconSymbol name="line.3.horizontal" color="#fff" size={30} />
                 </TouchableOpacity>
+<<<<<<< fix-m
                 <ThemedText testID="mainpage" type="defaultSemiBold" style={styles.title}>JoinMe</ThemedText>
+=======
+                <ThemedText type="defaultSemiBold" style={styles.title} pointerEvents="none">JoinMe</ThemedText>
+>>>>>>> main
                 <ThemedView style={styles.headerRight}>
                     <TouchableOpacity testID="filterbutton" onPress={() => setFilterModalOpen(true)}>
                         <IconSymbol name="line.3.horizontal.decrease.circle" color="#fff" size={30} />
@@ -161,24 +165,29 @@ export default function FeedScreen() {
                         )}
 
                         <GestureDetector gesture={panGesture}>
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(currentEvent) } })}
-                            >
-                                <Animated.View key={currentEvent!.id} style={[styles.eventCard, animatedStyle]}>
-                                    <Image source={{ uri: currentEvent!.image }} style={styles.eventImage} />
-                                    <ThemedView style={styles.row}>
-                                        <ThemedText numberOfLines={2} style={styles.eventTitleText}>{currentEvent!.title}</ThemedText>
-                                        <ThemedView style={styles.peopleWrap}>
-                                            <ThemedText style={styles.peopleText}>{currentEvent!.number}</ThemedText>
-                                            <IconSymbol size={30} name="person.3" color="#fff" />
+                            <Pressable onPress={() => router.push({ pathname: '/event', params: { event: JSON.stringify(currentEvent) } })}>
+                                {({ pressed }) => (
+                                    <Animated.View
+                                        key={currentEvent!.id}
+                                        style={[
+                                            styles.eventCard,
+                                            animatedStyle,
+                                            { backgroundColor: pressed ? '#191919' : '#0f0f0f' }
+                                        ]}
+                                    >
+                                        <Image source={{ uri: currentEvent!.image }} style={styles.eventImage} />
+                                        <ThemedView style={styles.row}>
+                                            <ThemedText numberOfLines={2} style={styles.eventTitleText}>{currentEvent!.title}</ThemedText>
+                                            <ThemedView style={styles.peopleWrap}>
+                                                <ThemedText style={styles.peopleText}>{currentEvent!.number}</ThemedText>
+                                                <IconSymbol size={30} name="person.3" color="#fff" />
+                                            </ThemedView>
                                         </ThemedView>
-                                    </ThemedView>
-                                    <ThemedText style={styles.text2}>{currentEvent!.location}</ThemedText>
-                                </Animated.View>
-                            </TouchableOpacity>
-                        </GestureDetector>
-
+                                        <ThemedText style={styles.text2}>{currentEvent!.location}</ThemedText>
+                                    </Animated.View>
+                                )}
+                            </Pressable>
+                        </GestureDetector> 
                         <ThemedView style={styles.buttrow}>
                             <TouchableOpacity style={styles.nobutt} onPress={() => handleSwipeDecision(false)}>
                                 <ThemedText style={styles.nobuttText}>✕</ThemedText>
@@ -219,6 +228,9 @@ const styles = StyleSheet.create({
         fontSize: 40,
         backgroundColor: 'transparent',
         paddingTop: 40,
+        position: 'absolute',
+        left: 0,
+        right: 0,
     },
     topBar: {
         flexDirection: 'row',
@@ -251,7 +263,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         width: 375,
         padding: 13,
-        height: 500,
+        height: 520,
         backgroundColor: '#0f0f0f',
         alignSelf: 'center',
     },
@@ -262,7 +274,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 30,
         width: 375,
-        height: 500,
+        height: 520,
         padding: 13,
         backgroundColor: 'transparent',
     },

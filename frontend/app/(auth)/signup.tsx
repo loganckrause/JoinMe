@@ -63,6 +63,10 @@ export default function SignupScreen() {
             Alert.alert('Invalid date of birth', 'Please enter date of birth in mm/dd/yyyy format.');
             return;
         }
+        if (age < 18) {
+             Alert.alert('Age requirement', 'You must be 18 or older to sign up.');
+        return;
+        }
 
         router.push({
             pathname: '/interests-pick',
@@ -135,6 +139,7 @@ export default function SignupScreen() {
                             secureTextEntry={secure}
                             value={password}
                             onChangeText={setPassword}
+                            autoComplete="new-password"
                         />
                         <TouchableOpacity
                             onPress={() => setSecure(!secure)}
@@ -155,6 +160,7 @@ export default function SignupScreen() {
                             secureTextEntry={secureConfirm}
                             value={cnfmPassword}
                             onChangeText={setCnfmPassword}
+                            autoComplete="new-password"
                         />
                         <TouchableOpacity
                             onPress={() => setSecureConfirm(!secureConfirm)}

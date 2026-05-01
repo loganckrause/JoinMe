@@ -9,6 +9,24 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EventCard, EventUser, deleteEvent, fetchEvent, fetchEventParticipants, getUserImageUri, recordSwipe } from '@/services/events';
 import { useAuthStore } from '@/store/auth';
 
+function formatEventDate(eventDate?: string) {
+    if (!eventDate) {
+        return '-';
+    }
+
+    const parsedDate = new Date(eventDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+        return eventDate;
+    }
+
+    return parsedDate.toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+}
+
 export default function EventScreen() {
     const { event: eventParam } = useLocalSearchParams();
     const token = useAuthStore((state) => state.token);
@@ -195,6 +213,7 @@ export default function EventScreen() {
             <ThemedView style={styles.container}>
                 <ThemedText style={styles.title}>{event?.title ?? 'Event'}</ThemedText>
                 <ThemedText>{event?.location ?? '-'}</ThemedText>
+                <ThemedText style={styles.dateText}>{formatEventDate(event?.eventDate)}</ThemedText>
                 <ThemedView style={styles.row}>
                     <TouchableOpacity onPress={() => navigateToProfile(organizer?.id)} disabled={!organizer?.id}>
                         <Image source={{uri: getUserImageUri(organizer)}} style={styles.pp} />
@@ -297,6 +316,10 @@ const styles = StyleSheet.create({
     },
     txt1: {
         paddingTop: 5,
+    },
+    dateText: {
+        paddingTop: 6,
+        color: '#aaa',
     },
     buttonRow: {
         flexDirection: "row",
